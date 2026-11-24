@@ -3,6 +3,7 @@ import catalogPlugin from '@backstage/plugin-catalog/alpha';
 import { authModule } from './modules/auth';
 import { apiDocsGrpcModule, grpcDocsPlugin } from './modules/grpcDocs';
 import { navModule } from './modules/nav';
+import { openCostPlugin } from './modules/opencost';
 import { themeModule } from './modules/theme';
 import { homeModule } from './modules/home';
 
@@ -15,5 +16,6 @@ export default createApp({
     homeModule,
     grpcDocsPlugin,
     apiDocsGrpcModule,
+    openCostPlugin,
   ],
 });

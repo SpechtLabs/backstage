@@ -8,6 +8,7 @@
 
 import { createBackend } from '@backstage/backend-defaults';
 import { authModuleTsidpProvider } from './modules/tsidpAuth';
+import { techInsightsModuleSpechtLabs } from './modules/techInsights';
 
 const backend = createBackend();
 
@@ -60,6 +61,25 @@ backend.add(import('@backstage/plugin-catalog-backend-module-logs'));
 // (catalog.providers.github, set by the cluster config along with the GitHub
 // App credentials; without that config it registers no provider).
 backend.add(import('@backstage/plugin-catalog-backend-module-github'));
+
+// Unprocessed entities: why a catalog-info.yaml didn't make it into the
+// catalog (the frontend page reads this).
+backend.add(import('@backstage/plugin-catalog-backend-module-unprocessed'));
+
+// Tech Insights: facts about entities and the scorecard checks over them
+// (techInsights in app-config.yaml). The jsonfc module evaluates the checks;
+// spechtLabsFactRetriever adds facts about SpechtLabs conventions.
+backend.add(import('@backstage-community/plugin-tech-insights-backend'));
+backend.add(
+  import('@backstage-community/plugin-tech-insights-backend-module-jsonfc'),
+);
+backend.add(techInsightsModuleSpechtLabs);
+
+// Tech Radar: tech-radar.json in this repo, read from GitHub (techRadar.url).
+backend.add(import('@backstage-community/plugin-tech-radar-backend'));
+
+// Explore: the tools in explore.tools, next to the catalog's domains/systems.
+backend.add(import('@backstage-community/plugin-explore-backend'));
 
 // permission plugin
 backend.add(import('@backstage/plugin-permission-backend'));

@@ -10,6 +10,8 @@ import { Divider } from './Divider';
 import { SidebarLogo } from './SidebarLogo';
 import MenuIcon from '@material-ui/icons/Menu';
 import SearchIcon from '@material-ui/icons/Search';
+import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
+import MoneyIcon from '@material-ui/icons/MonetizationOn';
 import { SidebarSearchModal } from '@backstage/plugin-search';
 import { UserSettingsSignInAvatar } from '@backstage/plugin-user-settings';
 import { NotificationsSidebarItem } from '@backstage/plugin-notifications';
@@ -42,6 +44,12 @@ export const SidebarContent = NavContentBlueprint.make({
             <Divider />
             <SidebarScrollWrapper>
               {nav.rest({ sortBy: 'title' })}
+              {/* Converted from the classic frontend: no nav item of its own. */}
+              <SidebarItem
+                icon={() => <MoneyIcon />}
+                to="/opencost"
+                text="OpenCost"
+              />
             </SidebarScrollWrapper>
           </SidebarGroup>
           <SidebarSpace />
@@ -55,6 +63,13 @@ export const SidebarContent = NavContentBlueprint.make({
           >
             {nav.take('page:user-settings')}
             {nav.take('page:devtools')}
+            {nav.take('page:entity-validation')}
+            {/* Registers a page but no nav item. */}
+            <SidebarItem
+              icon={() => <ErrorOutlineIcon />}
+              to="/catalog-unprocessed-entities"
+              text="Unprocessed"
+            />
             {nav.take('page:app-visualizer')}
           </SidebarGroup>
         </Sidebar>

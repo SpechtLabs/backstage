@@ -1,0 +1,711 @@
+{
+  "quadrants": [
+    {
+      "id": "infrastructure",
+      "name": "Infrastructure"
+    },
+    {
+      "id": "observability",
+      "name": "Observability"
+    },
+    {
+      "id": "languages",
+      "name": "Languages & Frameworks"
+    },
+    {
+      "id": "process",
+      "name": "Tools & Process"
+    }
+  ],
+  "rings": [
+    {
+      "id": "adopt",
+      "name": "ADOPT",
+      "color": "#008080",
+      "description": "What SpechtLabs runs on and recommends."
+    },
+    {
+      "id": "trial",
+      "name": "TRIAL",
+      "color": "#2862b8",
+      "description": "In use, still proving itself."
+    },
+    {
+      "id": "assess",
+      "name": "ASSESS",
+      "color": "#6aa1b7",
+      "description": "Worth a look."
+    },
+    {
+      "id": "hold",
+      "name": "HOLD",
+      "color": "#b56959",
+      "description": "Retired or replaced; do not start anything new on it."
+    }
+  ],
+  "entries": [
+    {
+      "id": "kubernetes-capi",
+      "key": "kubernetes-capi",
+      "title": "Kubernetes on Cluster API (CAPH)",
+      "quadrant": "infrastructure",
+      "description": "specht-labs runs on Hetzner Cloud, managed by Cluster API with the Hetzner provider.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://cluster-api.sigs.k8s.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "capi-operator",
+      "key": "capi-operator",
+      "title": "Cluster API Operator",
+      "quadrant": "infrastructure",
+      "description": "Installs and upgrades the CAPI providers from git instead of clusterctl.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-06-10T00:00:00.000Z",
+          "description": "Took over from clusterctl."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://github.com/kubernetes-sigs/cluster-api-operator",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "cilium",
+      "key": "cilium",
+      "title": "Cilium",
+      "quadrant": "infrastructure",
+      "description": "CNI on specht-labs.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://cilium.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "envoy-gateway",
+      "key": "envoy-gateway",
+      "title": "Envoy Gateway (Gateway API)",
+      "quadrant": "infrastructure",
+      "description": "All ingress: the public shared Gateway and the tailnet Gateway.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://gateway.envoyproxy.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "tailscale",
+      "key": "tailscale",
+      "title": "Tailscale",
+      "quadrant": "infrastructure",
+      "description": "The tailnet: private access, the Kubernetes operator, tsidp for sign-in.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://tailscale.com",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "cloudnative-pg",
+      "key": "cloudnative-pg",
+      "title": "CloudNativePG",
+      "quadrant": "infrastructure",
+      "description": "Postgres on Kubernetes with Barman Cloud backups to S3. First user: Backstage.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "trial",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "Introduced for Backstage."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://cloudnative-pg.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "cert-manager",
+      "key": "cert-manager",
+      "title": "cert-manager",
+      "quadrant": "infrastructure",
+      "description": "Let's Encrypt certificates, DNS-01 through Cloudflare.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://cert-manager.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "external-dns",
+      "key": "external-dns",
+      "title": "external-dns",
+      "quadrant": "infrastructure",
+      "description": "Cloudflare records from Services and Gateways.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://kubernetes-sigs.github.io/external-dns",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "ceph-rbd",
+      "key": "ceph-rbd",
+      "title": "Ceph RBD",
+      "quadrant": "infrastructure",
+      "description": "Block storage for labk3s.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://ceph.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "ingress-nginx",
+      "key": "ingress-nginx",
+      "title": "ingress-nginx",
+      "quadrant": "infrastructure",
+      "description": "Replaced by Envoy Gateway.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "hold",
+          "date": "2026-06-29T00:00:00.000Z",
+          "description": "Retired with the old specht-labs cluster."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://kubernetes.github.io/ingress-nginx",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "clusterctl",
+      "key": "clusterctl",
+      "title": "clusterctl (by hand)",
+      "quadrant": "infrastructure",
+      "description": "Provider lifecycle moved to the Cluster API Operator.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "hold",
+          "date": "2026-06-10T00:00:00.000Z",
+          "description": "Replaced by the Cluster API Operator."
+        }
+      ]
+    },
+    {
+      "id": "mimir",
+      "key": "mimir",
+      "title": "Grafana Mimir",
+      "quadrant": "observability",
+      "description": "Metrics, zone-aware RF3 across hel1, nbg1 and fsn1.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-06-29T00:00:00.000Z",
+          "description": "Self-hosted cutover."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://grafana.com/oss/mimir",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "loki",
+      "key": "loki",
+      "title": "Grafana Loki",
+      "quadrant": "observability",
+      "description": "Logs, distributed, zone-aware.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-06-29T00:00:00.000Z",
+          "description": "Self-hosted cutover."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://grafana.com/oss/loki",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "tempo",
+      "key": "tempo",
+      "title": "Grafana Tempo",
+      "quadrant": "observability",
+      "description": "Traces, distributed, zone-aware.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-06-29T00:00:00.000Z",
+          "description": "Self-hosted cutover."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://grafana.com/oss/tempo",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "pyroscope",
+      "key": "pyroscope",
+      "title": "Grafana Pyroscope",
+      "quadrant": "observability",
+      "description": "Continuous profiling, single region.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "trial",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://grafana.com/oss/pyroscope",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "alloy",
+      "key": "alloy",
+      "title": "Grafana Alloy (k8s-monitoring)",
+      "quadrant": "observability",
+      "description": "Collects metrics, logs and traces on both clusters.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://grafana.com/docs/alloy",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "grafana-cloud-viewing",
+      "key": "grafana-cloud-viewing",
+      "title": "Grafana Cloud (dashboards, SLOs)",
+      "quadrant": "observability",
+      "description": "Dashboards, alerting and SLOs over the self-hosted LGTM data, through PDC.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://grafana.com/products/cloud",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "beyla",
+      "key": "beyla",
+      "title": "Grafana Beyla",
+      "quadrant": "observability",
+      "description": "eBPF auto-instrumentation: RED metrics and traces without code changes.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "trial",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://grafana.com/oss/beyla-ebpf",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "opencost",
+      "key": "opencost",
+      "title": "OpenCost",
+      "quadrant": "observability",
+      "description": "Cost per workload on specht-labs.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "trial",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://opencost.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "kube-prometheus-stack",
+      "key": "kube-prometheus-stack",
+      "title": "kube-prometheus-stack",
+      "quadrant": "observability",
+      "description": "Replaced by k8s-monitoring and Mimir.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "hold",
+          "date": "2026-06-29T00:00:00.000Z",
+          "description": "Retired with the old cluster."
+        }
+      ]
+    },
+    {
+      "id": "promtail",
+      "key": "promtail",
+      "title": "Promtail",
+      "quadrant": "observability",
+      "description": "Replaced by Alloy.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "hold",
+          "date": "2026-06-29T00:00:00.000Z",
+          "description": "Retired."
+        }
+      ]
+    },
+    {
+      "id": "grafana-cloud-ingest",
+      "key": "grafana-cloud-ingest",
+      "title": "Grafana Cloud for data storage",
+      "quadrant": "observability",
+      "description": "Data now lands in the self-hosted LGTM stack; Grafana Cloud only views it.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "hold",
+          "date": "2026-06-29T00:00:00.000Z",
+          "description": "Shipping cut over to self-hosted."
+        }
+      ]
+    },
+    {
+      "id": "go",
+      "key": "go",
+      "title": "Go",
+      "quadrant": "languages",
+      "description": "Services and CLIs: tka, sigil, urlshortener, the Go libraries.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://go.dev",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "typescript",
+      "key": "typescript",
+      "title": "TypeScript",
+      "quadrant": "languages",
+      "description": "Backstage and the docs tooling.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://www.typescriptlang.org",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "vuepress-plume",
+      "key": "vuepress-plume",
+      "title": "VuePress + Plume",
+      "quadrant": "languages",
+      "description": "The SpechtLabs docs sites, with the shared docs-kit.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://theme-plume.vuejs.press",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "backstage",
+      "key": "backstage",
+      "title": "Backstage",
+      "quadrant": "languages",
+      "description": "The developer portal: catalog, TechDocs, scaffolder.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "trial",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "Introduced."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://backstage.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "gitops-argocd",
+      "key": "gitops-argocd",
+      "title": "GitOps with ArgoCD",
+      "quadrant": "process",
+      "description": "k8s-deployment is the source of truth; ArgoCD syncs both clusters.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://argo-cd.readthedocs.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "kustomize-helm",
+      "key": "kustomize-helm",
+      "title": "Kustomize + Helm",
+      "quadrant": "process",
+      "description": "Upstream charts rendered through kustomize, one overlay per cluster.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://kustomize.io",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "sops-ksops",
+      "key": "sops-ksops",
+      "title": "SOPS + age + ksops",
+      "quadrant": "process",
+      "description": "Secrets encrypted in git, decrypted by ArgoCD.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://github.com/getsops/sops",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "renovate",
+      "key": "renovate",
+      "title": "Renovate (automerge)",
+      "quadrant": "process",
+      "description": "Dependency updates; minor and patch merge themselves once CI passes.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://docs.renovatebot.com",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "mise",
+      "key": "mise",
+      "title": "mise",
+      "quadrant": "process",
+      "description": "Every local tool, pinned per repo.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "adopt",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://mise.jdx.dev",
+          "title": "Website"
+        }
+      ]
+    },
+    {
+      "id": "semver-releases",
+      "key": "semver-releases",
+      "title": "Conventional commits, release per push",
+      "quadrant": "process",
+      "description": "Backstage releases every push to main from its commit messages; Renovate rolls it out.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "trial",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "Introduced with Backstage."
+        }
+      ]
+    },
+    {
+      "id": "bitnami-charts",
+      "key": "bitnami-charts",
+      "title": "Bitnami charts",
+      "quadrant": "process",
+      "description": "Moved to the unmaintained bitnamilegacy catalog in 2025; use upstream charts or operators.",
+      "timeline": [
+        {
+          "moved": 0,
+          "ringId": "hold",
+          "date": "2026-11-24T00:00:00.000Z",
+          "description": "On the radar since it started."
+        }
+      ],
+      "links": [
+        {
+          "url": "https://github.com/bitnami/charts",
+          "title": "Website"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" preserveAspectRatio="xMidYMid slice">
+  <!-- Banner for Explore tool cards: the SpechtLabs logo's gradient. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="160" x2="400" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0a192f"/>
+      <stop offset="0.45" stop-color="#008080"/>
+      <stop offset="0.8" stop-color="#00a2a2"/>
+      <stop offset="1" stop-color="#2862b8"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="160" fill="url(#g)"/>
+</svg>

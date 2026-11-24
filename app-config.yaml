@@ -2,8 +2,12 @@ app:
   title: SpechtLabs Backstage
   baseUrl: http://localhost:3000
 
-  # Enable all packages by default, this will discover packages from packages/app/package.json
-  packages: all
+  # Discover every frontend plugin in packages/app/package.json, except:
+  # - plugin-opencost: wired up by hand (packages/app/src/modules/opencost)
+  #   until a version with a new-frontend export can be installed.
+  packages:
+    exclude:
+      - '@backstage-community/plugin-opencost'
 
   extensions:
     # The Home page is the landing page (/); the catalog stays at /catalog.
@@ -202,3 +206,151 @@ permission:
 mcpActions:
   name: 'SpechtLabs Backstage' # defaults to "backstage"
   description: 'Tools for managing your software catalog, creating new services from templates, and exploring your developer portal' # optional
+
+# Tech Radar: SpechtLabs' stack, in tech-radar.json in this repo. Read from
+# GitHub at runtime, so editing it needs no release. Required: the
+# tech-radar backend doesn't start without it.
+techRadar:
+  url: https://github.com/SpechtLabs/backstage/blob/main/tech-radar.json
+
+# Explore: the tools next to the catalog's domains and systems.
+explore:
+  tools:
+    - title: ArgoCD
+      description: GitOps for specht-labs, synced from k8s-deployment.
+      url: https://argocd.k8s.specht-labs.de
+      image: /explore-tool.svg
+      tags: [gitops, kubernetes]
+    - title: Grafana
+      description: Dashboards, alerts and SLOs over the self-hosted LGTM stack.
+      url: https://spechtlabs.grafana.net
+      image: /explore-tool.svg
+      tags: [observability]
+    - title: Tailscale admin
+      description: The tailnet, its ACLs and devices.
+      url: https://login.tailscale.com/admin
+      image: /explore-tool.svg
+      tags: [network]
+    - title: tsidp
+      description: Tailscale's OIDC identity provider, behind every sign-in.
+      url: https://idp.sphinx-map.ts.net
+      image: /explore-tool.svg
+      tags: [auth]
+    - title: Hetzner Cloud
+      description: The servers, volumes, load balancers and object storage.
+      url: https://console.hetzner.cloud
+      image: /explore-tool.svg
+      tags: [infrastructure]
+    - title: Cloudflare
+      description: DNS for specht-labs.de and the other zones.
+      url: https://dash.cloudflare.com
+      image: /explore-tool.svg
+      tags: [dns]
+    - title: Renovate
+      description: Dependency dashboards and job logs for the SpechtLabs repos.
+      url: https://developer.mend.io/github/SpechtLabs
+      image: /explore-tool.svg
+      tags: [dependencies]
+    - title: GitHub
+      description: The SpechtLabs organization.
+      url: https://github.com/SpechtLabs
+      image: /explore-tool.svg
+      tags: [code]
+
+# OpenCost: cost per workload. The cluster config points this at its proxy
+# to the in-cluster OpenCost API; this default is for local development.
+opencost:
+  baseUrl: http://localhost:7007/api/proxy/opencost
+
+# Tech Insights: facts collected hourly, and the scorecard checks over them.
+techInsights:
+  factRetrievers:
+    entityOwnershipFactRetriever:
+      cadence: '5 * * * *'
+      lifecycle: { timeToLive: { weeks: 2 } }
+    entityMetadataFactRetriever:
+      cadence: '5 * * * *'
+      lifecycle: { timeToLive: { weeks: 2 } }
+    techdocsFactRetriever:
+      cadence: '5 * * * *'
+      lifecycle: { timeToLive: { weeks: 2 } }
+    # SpechtLabs conventions (packages/backend/src/modules/techInsights.ts).
+    spechtLabsFactRetriever:
+      cadence: '10 * * * *'
+      lifecycle: { timeToLive: { weeks: 2 } }
+  factChecker:
+    checks:
+      groupOwner:
+        type: json-rules-engine
+        name: Owned by a group
+        description: spec.owner is a Group, not a single User.
+        factIds: [entityOwnershipFactRetriever]
+        rule:
+          conditions:
+            all:
+              - { fact: hasGroupOwner, operator: equal, value: true }
+      description:
+        type: json-rules-engine
+        name: Has a description
+        description: metadata.description says what it is.
+        factIds: [entityMetadataFactRetriever]
+        rule:
+          conditions:
+            all:
+              - { fact: hasDescription, operator: equal, value: true }
+      techdocs:
+        type: json-rules-engine
+        name: Has TechDocs
+        description: Annotated with backstage.io/techdocs-ref.
+        factIds: [techdocsFactRetriever]
+        rule:
+          conditions:
+            all:
+              - fact: hasAnnotationBackstageIoTechdocsRef
+                operator: equal
+                value: true
+      system:
+        type: json-rules-engine
+        name: Part of a System
+        description: spec.system places it in the catalog's map.
+        factIds: [spechtLabsFactRetriever]
+        rule:
+          conditions:
+            all:
+              - { fact: hasSystem, operator: equal, value: true }
+      github:
+        type: json-rules-engine
+        name: Linked to its repo
+        description: Annotated with github.com/project-slug.
+        factIds: [spechtLabsFactRetriever]
+        rule:
+          conditions:
+            all:
+              - { fact: hasGithubSlug, operator: equal, value: true }
+      renovate:
+        type: json-rules-engine
+        name: Renovate configured
+        description: Its repo has a Renovate config, so dependencies stay current.
+        factIds: [spechtLabsFactRetriever]
+        rule:
+          conditions:
+            all:
+              - { fact: hasRenovate, operator: equal, value: true }
+      argocd:
+        type: json-rules-engine
+        name: Deployed by ArgoCD
+        description: Annotated with argocd/app-name or argocd/app-selector.
+        factIds: [spechtLabsFactRetriever]
+        rule:
+          conditions:
+            all:
+              - { fact: hasArgocdApp, operator: equal, value: true }
+      kubernetes:
+        type: json-rules-engine
+        name: Shows its workloads
+        description: Annotated with a Kubernetes label selector or id.
+        factIds: [spechtLabsFactRetriever]
+        rule:
+          conditions:
+            all:
+              - { fact: hasKubernetesWorkloads, operator: equal, value: true }

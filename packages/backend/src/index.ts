@@ -112,4 +112,7 @@ backend.add(import('@backstage/plugin-signals-backend'));
 // mcp actions plugin
 backend.add(import('@backstage/plugin-mcp-actions-backend'));
 
+// tailnet policy from the catalog's dependency graph (shadow mode)
+backend.add(import('./plugins/tailnetPolicy'));
+
 backend.start();

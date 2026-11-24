@@ -232,6 +232,20 @@ mcpActions:
 # Tech Radar: SpechtLabs' stack, in tech-radar.json in this repo. Read from
 # GitHub at runtime, so editing it needs no release. Required: the
 # tech-radar backend doesn't start without it.
+# Tailnet policy from the catalog (packages/backend/src/plugins/tailnetPolicy):
+# Tailscale grants rendered from Components consuming APIs annotated with
+# specht-labs.de/tailnet-dst, compared with the hand-written policy. Shadow
+# mode: production sets tailnetPolicy.publish to keep a pull request open in
+# a sandbox repo; nothing is applied to the tailnet.
+tailnetPolicy:
+  basePolicyUrl: https://github.com/cedi/homelab/blob/main/tailscale/policy.hujson
+  # Owners for tags the hand-written policy doesn't have yet: these, plus the
+  # Tailscale operator of the cluster the tag shows up on.
+  defaultTagOwners: [group:admins]
+  clusterTagOwners:
+    specht-labs: tag:k8s-operator
+    labk3s: tag:k3s-operator
+
 techRadar:
   url: https://github.com/SpechtLabs/backstage/blob/main/tech-radar.json
 

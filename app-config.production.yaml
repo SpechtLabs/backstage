@@ -36,7 +36,8 @@ auth:
   environment: production
 
 catalog:
-  # Everything else, Backstage's own catalog-info.yaml included, comes from
+  # Everything else, Backstage's own entity included (it lives in
+  # k8s-deployment, apps/backstage/cluster/specht-labs/catalog-info.yaml), comes from
   # GitHub discovery (catalog.providers.github, in the cluster config).
   # Entities whose source stops emitting them are deleted, not kept: git is
   # the source of truth.

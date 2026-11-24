@@ -1,0 +1,69 @@
+/*
+ * SpechtLabs colours for Backstage UI (the --bui-* tokens), which newer core
+ * pages render with. themes.tsx does the same for the Material UI parts; the
+ * values come from brand.ts (the docs sites' vuepress-theme-plume palette).
+ * Loaded after @backstage/ui's stylesheet, same selectors, so these win.
+ */
+
+:root,
+[data-theme-mode='light'] {
+  --bui-font-regular: 'Inter Variable', Inter, ui-sans-serif, system-ui,
+    -apple-system, 'Segoe UI', sans-serif;
+
+  --bui-bg-app: #f6f6f7;
+  --bui-bg-neutral-1: #ffffff;
+  --bui-bg-neutral-2: #f6f6f7;
+  --bui-bg-neutral-3: #ffffff;
+  --bui-bg-neutral-4: #f6f6f7;
+
+  --bui-fg-primary: rgb(60, 60, 67);
+  --bui-fg-secondary: rgba(60, 60, 67, 0.78);
+  --bui-fg-disabled: rgba(60, 60, 67, 0.4);
+
+  --bui-border-1: #e2e2e3;
+  --bui-border-2: #c2c2c4;
+
+  /* brand-1 #5086a1, darkened for hover and press */
+  --bui-bg-solid: #5086a1;
+  --bui-bg-solid-hover: #43748c;
+  --bui-bg-solid-pressed: #3a6479;
+  --bui-bg-solid-disabled: #9bb8c7;
+  --bui-fg-solid: #ffffff;
+  --bui-accent-bg-hover: #43748c;
+  --bui-ring: #5086a1;
+
+  --bui-shadow: 0 1px 2px rgba(10, 25, 47, 0.06),
+    0 4px 12px -4px rgba(10, 25, 47, 0.08);
+}
+
+[data-theme-mode='dark'] {
+  --bui-bg-app: #1b1b1f;
+  --bui-bg-neutral-1: #202127;
+  --bui-bg-neutral-2: #26272e;
+  --bui-bg-neutral-3: #2c2d35;
+  --bui-bg-neutral-4: #32333b;
+
+  --bui-fg-primary: rgba(255, 255, 245, 0.86);
+  --bui-fg-secondary: rgba(235, 235, 245, 0.6);
+  --bui-fg-disabled: rgba(235, 235, 245, 0.38);
+
+  --bui-border-1: #2e2e32;
+  --bui-border-2: #45454b;
+
+  /* brand-1 #8cccd5 on the logo's navy */
+  --bui-bg-solid: #8cccd5;
+  --bui-bg-solid-hover: #a3d8df;
+  --bui-bg-solid-pressed: #a3d8df;
+  --bui-bg-solid-disabled: #3d5b61;
+  --bui-fg-solid: #0a192f;
+  --bui-accent-bg-hover: #a3d8df;
+  --bui-ring: #8cccd5;
+}
+
+/* The page body behind both UI systems. */
+body {
+  font-family: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}

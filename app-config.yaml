@@ -6,13 +6,7 @@ app:
   packages: all
 
   extensions:
-    # Default landing page configuration.
-    # The catalog is mounted at /catalog by default but is overridden here to
-    # serve as the root page. To switch to the Home page, comment out the
-    # catalog path override and uncomment the path override under page:home below.
-    - page:catalog:
-        config:
-          path: /
+    # The Home page is the landing page (/); the catalog stays at /catalog.
 
     # Visit tracking feeds the Most Visited and Recently Visited widgets
     # (stored through the user-settings backend).
@@ -42,7 +36,7 @@ app:
     - home-page-widget:home/world-clock: false
     - page:home:
         config:
-          # path: /
+          path: /
           defaultConfig:
             - component: HomePageSearchBar
               column: 0

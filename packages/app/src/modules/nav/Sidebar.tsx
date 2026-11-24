@@ -1,12 +1,12 @@
 import {
   Sidebar,
-  SidebarDivider,
   SidebarGroup,
   SidebarItem,
   SidebarScrollWrapper,
   SidebarSpace,
 } from '@backstage/core-components';
 import { NavContentBlueprint } from '@backstage/plugin-app-react';
+import { Divider } from './Divider';
 import { SidebarLogo } from './SidebarLogo';
 import MenuIcon from '@material-ui/icons/Menu';
 import SearchIcon from '@material-ui/icons/Search';
@@ -24,6 +24,9 @@ export const SidebarContent = NavContentBlueprint.make({
       // Skipped items
       nav.take('page:search'); // Using search modal instead
       nav.take('page:notifications'); // Using NotificationsSidebarItem manually instead
+      // Repos come in through GitHub discovery; registering by hand stays
+      // reachable from the Create page.
+      nav.take('page:catalog-import');
 
       return (
         <Sidebar>
@@ -31,27 +34,28 @@ export const SidebarContent = NavContentBlueprint.make({
           <SidebarGroup label="Search" icon={<SearchIcon />} to="/search">
             <SidebarSearchModal />
           </SidebarGroup>
-          <SidebarDivider />
+          <Divider />
           <SidebarGroup label="Menu" icon={<MenuIcon />}>
             {nav.take('page:home')}
             {nav.take('page:catalog')}
             {nav.take('page:scaffolder')}
-            <SidebarDivider />
+            <Divider />
             <SidebarScrollWrapper>
               {nav.rest({ sortBy: 'title' })}
             </SidebarScrollWrapper>
           </SidebarGroup>
           <SidebarSpace />
-          <SidebarDivider />
+          <Divider />
           <NotificationsSidebarItem />
-          <SidebarDivider />
+          <Divider />
           <SidebarGroup
             label="Settings"
             icon={<UserSettingsSignInAvatar />}
             to="/settings"
           >
-            {nav.take('page:app-visualizer')}
             {nav.take('page:user-settings')}
+            {nav.take('page:devtools')}
+            {nav.take('page:app-visualizer')}
           </SidebarGroup>
         </Sidebar>
       );

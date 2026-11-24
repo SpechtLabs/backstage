@@ -3,12 +3,14 @@ import catalogPlugin from '@backstage/plugin-catalog/alpha';
 import { authModule } from './modules/auth';
 import { apiDocsGrpcModule, grpcDocsPlugin } from './modules/grpcDocs';
 import { navModule } from './modules/nav';
+import { themeModule } from './modules/theme';
 import { homeModule } from './modules/home';
 
 export default createApp({
   features: [
     catalogPlugin,
     authModule,
+    themeModule,
     navModule,
     homeModule,
     grpcDocsPlugin,

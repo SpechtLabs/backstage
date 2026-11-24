@@ -9,7 +9,10 @@ app:
 backend:
   # The URL browsers and other clients use to reach the backend.
   baseUrl: http://localhost:7007
-  listen: ':7007'
+  # Object form: the Helm chart sets APP_CONFIG_backend_listen_port, and a
+  # string here (':7007') can't merge with it ("got string, wanted object").
+  listen:
+    port: 7007
 
   # config options: https://node-postgres.com/apis/client
   # The env vars come from the CNPG-generated Secret <cluster>-app.

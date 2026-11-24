@@ -4,11 +4,11 @@ import {
   DependencyGraphTypes,
 } from '@backstage/core-components';
 import { makeStyles, useTheme } from '@material-ui/core/styles';
-import type { GeneratedGrant, GrantStatus } from '../api';
+import type { CapabilityGrant, GeneratedGrant, GrantStatus } from '../api';
 import { entityName } from './shared';
 
 type NodeData = {
-  kind: 'tag' | 'svc';
+  kind: 'tag' | 'svc' | 'group';
   /** The services behind the selector, for its second line. */
   services: string[];
   selected: boolean;
@@ -66,10 +66,11 @@ function SelectorNode({
     const measured = Math.round(textRef.current?.getBBox().width ?? 0);
     if (measured !== width) setWidth(measured);
   }, [width, node.id]);
-  const color =
-    node.kind === 'svc'
-      ? theme.palette.secondary.main
-      : theme.palette.primary.main;
+  const color = {
+    svc: theme.palette.secondary.main,
+    tag: theme.palette.primary.main,
+    group: theme.palette.text.secondary,
+  }[node.kind];
   const padded = width + 36;
   return (
     <g className={classes.node} onClick={() => onSelect(node.id)}>
@@ -124,10 +125,13 @@ function PortsLabel({ edge }: DependencyGraphTypes.RenderLabelProps<EdgeData>) {
  */
 export function FlowGraph({
   grants,
+  capabilities = [],
   selected,
   onSelect,
 }: {
   grants: GeneratedGrant[];
+  /** TailscaleGrants: people (groups) to services, with capabilities. */
+  capabilities?: CapabilityGrant[];
   selected?: string;
   onSelect: (id: string) => void;
 }) {
@@ -139,7 +143,8 @@ export function FlowGraph({
     const add = (id: string, services: string[]) => {
       const node = byId.get(id) ?? {
         id,
-        kind: id.startsWith('svc:') ? 'svc' : 'tag',
+        kind: (['svc', 'group'].find(k => id.startsWith(`${k}:`)) ??
+          'tag') as NodeData['kind'],
         services: [],
         selected: id === selected,
       };
@@ -150,9 +155,32 @@ export function FlowGraph({
       string,
       DependencyGraphTypes.DependencyEdge<EdgeData>
     >();
-    for (const grant of grants) {
-      const consumers = grant.edges.map(e => entityName(e.consumer));
-      const apis = grant.edges.map(e => entityName(e.api));
+    const statusOf = { match: 'match', differs: 'broad', new: 'new' } as const;
+    const all = [
+      ...grants.map(g => ({
+        src: g.src,
+        dst: g.dst,
+        ip: g.ip,
+        status: g.status,
+        consumers: g.edges.map(e => entityName(e.consumer)),
+        apis: g.edges.map(e => entityName(e.api)),
+      })),
+      ...capabilities.map(c => ({
+        src: c.src,
+        dst: c.dst,
+        // The capability's short name next to the ports: tsidp, tka, …
+        ip: [
+          `${c.ip.join(', ')} · ${Object.keys(c.app)
+            .map(name => name.split('/').pop())
+            .join(', ')}`,
+        ],
+        status: statusOf[c.status] as GrantStatus,
+        consumers: [] as string[],
+        apis: c.targets.map(entityName),
+      })),
+    ];
+    for (const grant of all) {
+      const { consumers, apis } = grant;
       grant.src.forEach(s => add(s, consumers));
       grant.dst.forEach(d => add(d, apis));
       for (const from of grant.src) {
@@ -176,7 +204,7 @@ export function FlowGraph({
       }
     }
     return { nodes: [...byId.values()], edges: [...flows.values()] };
-  }, [grants, selected]);
+  }, [grants, capabilities, selected]);
 
   if (!nodes.length) return null;
   return (

@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   Link,
+  StatusAborted,
   StatusError,
   StatusOK,
   StatusWarning,
@@ -13,9 +14,14 @@ import { Chip, Tooltip, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import LabelIcon from '@material-ui/icons/LocalOffer';
 import ServiceIcon from '@material-ui/icons/Dns';
+import GroupIcon from '@material-ui/icons/People';
+import KeyIcon from '@material-ui/icons/VpnKey';
 import {
   tailnetPolicyApiRef,
+  type App,
+  type CapabilityStatus,
   type DeclaredStatus,
+  type HandWrittenCapabilityStatus,
   type GeneratedGrant,
   type GrantStatus,
   type Overview,
@@ -41,6 +47,29 @@ const useStyles = makeStyles(theme => ({
   svc: { borderColor: theme.palette.secondary.main },
   tagIcon: { color: `${theme.palette.primary.main} !important` },
   svcIcon: { color: `${theme.palette.secondary.main} !important` },
+  group: { borderColor: theme.palette.text.secondary },
+  groupIcon: { color: `${theme.palette.text.secondary} !important` },
+  capability: {
+    borderColor: theme.palette.primary.main,
+    backgroundColor: theme.palette.action.hover,
+  },
+  json: {
+    fontFamily:
+      "ui-monospace, 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace",
+    fontSize: '0.75rem',
+    margin: theme.spacing(0.5, 0, 0),
+    padding: theme.spacing(1, 1.5),
+    borderRadius: 8,
+    backgroundColor: theme.palette.action.hover,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+  },
+  summary: {
+    cursor: 'pointer',
+    color: theme.palette.text.secondary,
+    fontSize: '0.8rem',
+    marginTop: theme.spacing(0.5),
+  },
   port: {
     backgroundColor: theme.palette.action.hover,
     border: 'none',
@@ -93,7 +122,13 @@ export function usePolicyLink() {
   };
 }
 
-/** A tag:… or svc:… selector; links to the policy page filtered to it. */
+const SELECTORS = {
+  tag: { Icon: LabelIcon, title: 'Tailscale tag' },
+  svc: { Icon: ServiceIcon, title: 'Tailscale Service' },
+  group: { Icon: GroupIcon, title: 'Tailscale group (people)' },
+} as const;
+
+/** A tag:…, svc:… or group:… selector; links to the policy page filtered to it. */
 export function Selector({
   value,
   link = true,
@@ -103,30 +138,24 @@ export function Selector({
 }) {
   const classes = useStyles();
   const policyLink = usePolicyLink();
-  const svc = value.startsWith('svc:');
+  const kind =
+    (value.split(':')[0] as keyof typeof SELECTORS) in SELECTORS
+      ? (value.split(':')[0] as keyof typeof SELECTORS)
+      : 'tag';
+  const { Icon, title } = SELECTORS[kind];
   const chip = (
     <Chip
       size="small"
       variant="outlined"
-      icon={
-        svc ? (
-          <ServiceIcon fontSize="small" className={classes.svcIcon} />
-        ) : (
-          <LabelIcon fontSize="small" className={classes.tagIcon} />
-        )
-      }
+      icon={<Icon fontSize="small" className={classes[`${kind}Icon`]} />}
       label={value}
-      className={`${classes.chip} ${svc ? classes.svc : classes.tag}`}
+      className={`${classes.chip} ${classes[kind]}`}
       {...(link
         ? { component: RouterLink, to: policyLink(value), clickable: true }
         : {})}
     />
   );
-  return (
-    <Tooltip title={svc ? 'Tailscale Service' : 'Tailscale tag'}>
-      {chip}
-    </Tooltip>
-  );
+  return <Tooltip title={title}>{chip}</Tooltip>;
 }
 
 export function Port({ value }: { value: string }) {
@@ -286,4 +315,75 @@ export function since(iso: string) {
   if (minutes < 1) return 'just now';
   if (minutes < 60) return `${minutes} min ago`;
   return `${Math.round(minutes / 60)} h ago`;
+}
+
+/** A capability's name, e.g. tailscale.com/cap/tsidp. */
+export function Capability({ name }: { name: string }) {
+  const classes = useStyles();
+  return (
+    <Tooltip title="Application capability">
+      <Chip
+        size="small"
+        variant="outlined"
+        icon={<KeyIcon fontSize="small" className={classes.tagIcon} />}
+        label={name}
+        className={`${classes.chip} ${classes.capability}`}
+      />
+    </Tooltip>
+  );
+}
+
+/** The capabilities' names, and their values behind a disclosure. */
+export function Capabilities({ app, open }: { app: App; open?: boolean }) {
+  const classes = useStyles();
+  return (
+    <div>
+      {Object.keys(app).map(name => (
+        <Capability key={name} name={name} />
+      ))}
+      <details open={open}>
+        <summary className={classes.summary}>Values</summary>
+        <pre className={classes.json}>{JSON.stringify(app, null, 2)}</pre>
+      </details>
+    </div>
+  );
+}
+
+export const capabilityStatusText: Record<CapabilityStatus, string> = {
+  match: 'Matches a hand-written grant',
+  differs: 'Differs from the hand-written grant',
+  new: 'Not in the hand-written policy',
+};
+
+export function CapabilityStatusBadge({
+  status,
+}: {
+  status: CapabilityStatus;
+}) {
+  const text = capabilityStatusText[status];
+  if (status === 'match') return <StatusOK>{text}</StatusOK>;
+  if (status === 'differs') return <StatusWarning>{text}</StatusWarning>;
+  return <StatusError>{text}</StatusError>;
+}
+
+export const handWrittenCapabilityText: Record<
+  HandWrittenCapabilityStatus,
+  string
+> = {
+  declared: 'Declared by a TailscaleGrant',
+  differs: 'A TailscaleGrant differs',
+  missing: 'No TailscaleGrant',
+  'hand-written': 'Stays hand-written',
+};
+
+export function HandWrittenCapabilityBadge({
+  status,
+}: {
+  status: HandWrittenCapabilityStatus;
+}) {
+  const text = handWrittenCapabilityText[status];
+  if (status === 'declared') return <StatusOK>{text}</StatusOK>;
+  if (status === 'differs') return <StatusWarning>{text}</StatusWarning>;
+  if (status === 'missing') return <StatusError>{text}</StatusError>;
+  return <StatusAborted>{text}</StatusAborted>;
 }

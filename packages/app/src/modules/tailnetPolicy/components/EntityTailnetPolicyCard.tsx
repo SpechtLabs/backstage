@@ -4,8 +4,15 @@ import { useEntity, EntityRefLink } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { Box, Divider, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import type { EdgeView, GeneratedGrant, Overview } from '../api';
+import type {
+  CapabilityGrant,
+  EdgeView,
+  GeneratedGrant,
+  Overview,
+} from '../api';
 import {
+  Capabilities,
+  CapabilityStatusBadge,
   Caption,
   EdgeChain,
   Flow,
@@ -37,6 +44,10 @@ interface Involvement {
   reachedBy: Array<{ edge: EdgeView; grant: GeneratedGrant }>;
   local: Overview['local'];
   findings: Overview['invalid'];
+  /** TailscaleGrants that name this entity as a target. */
+  capabilityGrants: CapabilityGrant[];
+  /** This entity's own grant, on a TailscaleGrant's page. */
+  own?: CapabilityGrant;
 }
 
 function involvement(overview: Overview, ref: string): Involvement {
@@ -54,7 +65,33 @@ function involvement(overview: Overview, ref: string): Involvement {
     findings: [...overview.invalid, ...overview.missingSource].filter(
       f => f.entity === ref,
     ),
+    capabilityGrants: overview.capabilities.grants.filter(g =>
+      g.targets.includes(ref),
+    ),
+    own: overview.capabilities.grants.find(g => g.entity === ref),
   };
+}
+
+function CapabilityStatus({
+  grant,
+  overview,
+}: {
+  grant: CapabilityGrant;
+  overview: Overview;
+}) {
+  return (
+    <>
+      <CapabilityStatusBadge status={grant.status} />
+      {grant.counterpart && (
+        <div>
+          <PolicyGrantLink
+            grant={grant.counterpart}
+            basePolicyUrl={overview.basePolicyUrl}
+          />
+        </div>
+      )}
+    </>
+  );
 }
 
 function Row({
@@ -105,7 +142,9 @@ export function EntityTailnetPolicyCard() {
   if (
     !found.reaches.length &&
     !found.reachedBy.length &&
-    !found.findings.length
+    !found.findings.length &&
+    !found.capabilityGrants.length &&
+    !found.own
   ) {
     return null;
   }
@@ -124,6 +163,59 @@ export function EntityTailnetPolicyCard() {
           <StatusWarning>{f.message}</StatusWarning>
         </Box>
       ))}
+
+      {found.own && (
+        <Box className={classes.section}>
+          <Typography variant="overline">The grant</Typography>
+          <div className={classes.row}>
+            <div>
+              <Flow
+                src={found.own.src}
+                dst={found.own.dst}
+                ports={found.own.ip}
+              />
+            </div>
+            <div className={classes.status}>
+              <CapabilityStatus grant={found.own} overview={overview} />
+            </div>
+          </div>
+          {found.own.differences.map(d => (
+            <StatusWarning key={d}>{d}</StatusWarning>
+          ))}
+          <Box mt={1}>
+            <Capabilities app={found.own.app} open />
+          </Box>
+          <Box mt={1.5}>
+            <Caption>
+              For{' '}
+              {found.own.targets.map((t, i) => (
+                <span key={t}>
+                  <EntityRefLink entityRef={t} />
+                  {i < found.own!.targets.length - 1 ? ', ' : ''}
+                </span>
+              ))}
+            </Caption>
+          </Box>
+        </Box>
+      )}
+
+      {found.capabilityGrants.length > 0 && (
+        <Box className={classes.section}>
+          <Typography variant="overline">Capability grants</Typography>
+          {found.capabilityGrants.map(grant => (
+            <div className={classes.row} key={grant.entity}>
+              <div>
+                <EntityRefLink entityRef={grant.entity} />
+                <Flow src={grant.src} dst={grant.dst} ports={grant.ip} />
+                <Capabilities app={grant.app} />
+              </div>
+              <div className={classes.status}>
+                <CapabilityStatus grant={grant} overview={overview} />
+              </div>
+            </div>
+          ))}
+        </Box>
+      )}
 
       {found.reaches.length > 0 && (
         <Box className={classes.section}>

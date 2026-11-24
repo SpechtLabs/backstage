@@ -13,7 +13,8 @@ import { rootRouteRef } from './routes';
 /**
  * The tailnet policy the catalog renders to (packages/backend's
  * tailnetPolicy plugin): a page with all of it at /tailnet-policy, and a
- * card on Component and API pages with the grants that entity causes.
+ * card on Component, API, Resource and TailscaleGrant pages with the
+ * grants that entity causes or carries.
  */
 export const tailnetPolicyPlugin = createFrontendPlugin({
   pluginId: 'tailnet-policy',
@@ -45,7 +46,9 @@ export const tailnetPolicyPlugin = createFrontendPlugin({
         type: 'content',
         // The card renders nothing for entities off the tailnet.
         filter: entity =>
-          ['component', 'api'].includes(entity.kind.toLowerCase()),
+          ['component', 'api', 'resource', 'tailscalegrant'].includes(
+            entity.kind.toLowerCase(),
+          ),
         loader: () =>
           import('./components/EntityTailnetPolicyCard').then(m => (
             <m.EntityTailnetPolicyCard />

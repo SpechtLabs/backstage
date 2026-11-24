@@ -17123,6 +17123,7 @@ __metadata:
     "@backstage/plugin-signals-backend": "npm:^0.3.21"
     "@backstage/plugin-techdocs-backend": "npm:^2.4.3"
     "@backstage/plugin-user-settings-backend": "npm:^0.4.9"
+    "@backstage/types": "npm:^1.2.2"
     "@estehsaan/backstage-plugin-techdocs-editor-backend": "npm:^2.1.1"
     "@types/luxon": "npm:^3.7.6"
     app: "link:../app"

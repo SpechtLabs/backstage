@@ -29,16 +29,22 @@ import { makeStyles } from '@material-ui/core/styles';
 import SearchIcon from '@material-ui/icons/Search';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import type {
+  CapabilityGrant,
   EdgeView,
   GeneratedGrant,
+  HandWrittenCapability,
   HandWrittenGrant,
   LocalEdge,
   Overview,
 } from '../api';
 import { FlowGraph } from './FlowGraph';
 import {
+  Capabilities,
+  Capability,
+  CapabilityStatusBadge,
   Caption,
   DeclaredStatusBadge,
+  HandWrittenCapabilityBadge,
   EdgeChain,
   Flow,
   GrantStatusBadge,
@@ -212,6 +218,129 @@ function HandWrittenTable({
   );
 }
 
+function CapabilityTable({
+  grants,
+  overview,
+}: {
+  grants: CapabilityGrant[];
+  overview: Overview;
+}) {
+  const classes = useStyles();
+  if (!grants.length) {
+    return <Caption>No TailscaleGrant matches the filter.</Caption>;
+  }
+  return (
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell>TailscaleGrant</TableCell>
+          <TableCell>Grant</TableCell>
+          <TableCell>Capabilities</TableCell>
+          <TableCell>For</TableCell>
+          <TableCell>Today</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {grants.map(grant => (
+          <TableRow key={grant.entity}>
+            <TableCell className={classes.cellTop}>
+              <EntityRefLink entityRef={grant.entity} />
+              {grant.description && <Caption>{grant.description}</Caption>}
+            </TableCell>
+            <TableCell className={classes.cellTop}>
+              <Flow src={grant.src} dst={grant.dst} ports={grant.ip} />
+            </TableCell>
+            <TableCell className={classes.cellTop}>
+              <Capabilities app={grant.app} />
+            </TableCell>
+            <TableCell className={classes.cellTop}>
+              {grant.targets.map(t => (
+                <div key={t}>
+                  <EntityRefLink entityRef={t} />
+                </div>
+              ))}
+            </TableCell>
+            <TableCell className={classes.cellTop}>
+              <CapabilityStatusBadge status={grant.status} />
+              {grant.counterpart && (
+                <div>
+                  <PolicyGrantLink
+                    grant={grant.counterpart}
+                    basePolicyUrl={overview.basePolicyUrl}
+                  />
+                </div>
+              )}
+              {grant.differences.map(d => (
+                <Caption key={d}>{d}</Caption>
+              ))}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function HandWrittenCapabilityTable({
+  grants,
+  overview,
+}: {
+  grants: HandWrittenCapability[];
+  overview: Overview;
+}) {
+  const classes = useStyles();
+  if (!grants.length) {
+    return (
+      <Caption>No hand-written capability grant matches the filter.</Caption>
+    );
+  }
+  return (
+    <Table size="small">
+      <TableHead>
+        <TableRow>
+          <TableCell>#</TableCell>
+          <TableCell>Grant</TableCell>
+          <TableCell>Capabilities</TableCell>
+          <TableCell>In the catalog</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {grants.map(grant => (
+          <TableRow key={grant.number}>
+            <TableCell className={classes.cellTop}>
+              <PolicyGrantLink
+                grant={grant}
+                basePolicyUrl={overview.basePolicyUrl}
+              />
+            </TableCell>
+            <TableCell className={classes.cellTop}>
+              <Flow
+                src={grant.src}
+                dst={grant.dst}
+                ports={grant.ip}
+                link={false}
+              />
+            </TableCell>
+            <TableCell className={classes.cellTop}>
+              {Object.keys(grant.app).map(name => (
+                <Capability key={name} name={name} />
+              ))}
+            </TableCell>
+            <TableCell className={classes.cellTop}>
+              <HandWrittenCapabilityBadge status={grant.status} />
+              {grant.declaredBy && (
+                <div>
+                  <EntityRefLink entityRef={grant.declaredBy} />
+                </div>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
 function Attention({ overview, q }: { overview: Overview; q: string }) {
   const invalid = overview.invalid.filter(f => matches(q, f.entity));
   const missing = overview.missingSource.filter(f => matches(q, f.entity));
@@ -344,6 +473,25 @@ export function TailnetPolicyPage() {
         matches(q, ...g.src, ...g.dst, ...g.ip, g.text),
       ),
       local: overview.local.filter(e => matches(q, ...edgeValues(e))),
+      capabilities: overview.capabilities.grants.filter(g =>
+        matches(
+          q,
+          g.entity,
+          ...g.targets,
+          ...g.src,
+          ...g.dst,
+          ...Object.keys(g.app),
+        ),
+      ),
+      handWrittenCapabilities: overview.capabilities.handWritten.filter(g =>
+        matches(
+          q,
+          ...g.src,
+          ...g.dst,
+          ...Object.keys(g.app),
+          g.declaredBy ?? '',
+        ),
+      ),
     };
   }, [overview, q]);
 
@@ -441,11 +589,12 @@ export function TailnetPolicyPage() {
         <Grid item xs={12}>
           <InfoCard
             title="Flows"
-            subheader="Tags and Tailscale Services, and the ports between them. Click one to filter."
+            subheader="Tags, Tailscale Services and groups, and the ports (and capabilities) between them. Click one to filter."
           >
             <div className={classes.graph}>
               <FlowGraph
                 grants={filtered.grants}
+                capabilities={filtered.capabilities}
                 selected={q}
                 onSelect={setQuery}
               />
@@ -469,6 +618,26 @@ export function TailnetPolicyPage() {
               grants={filtered.handWritten}
               overview={overview}
             />
+          </InfoCard>
+        </Grid>
+        <Grid item xs={12}>
+          <InfoCard
+            title="Capability grants"
+            subheader={`TailscaleGrant entities: grants that carry application capabilities (tsidp, TKA, …). ${overview.capabilities.summary.match} match, ${overview.capabilities.summary.differs} differ, ${overview.capabilities.summary.new} new.`}
+          >
+            <CapabilityTable
+              grants={filtered.capabilities}
+              overview={overview}
+            />
+            <Box mt={3}>
+              <Typography variant="overline">
+                Hand-written grants with capabilities
+              </Typography>
+              <HandWrittenCapabilityTable
+                grants={filtered.handWrittenCapabilities}
+                overview={overview}
+              />
+            </Box>
           </InfoCard>
         </Grid>
         <Grid item xs={12}>

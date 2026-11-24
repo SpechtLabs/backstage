@@ -58,6 +58,39 @@ export interface Finding {
   message: string;
 }
 
+export type CapabilityStatus = 'match' | 'differs' | 'new';
+export type HandWrittenCapabilityStatus =
+  | 'declared'
+  | 'differs'
+  | 'missing'
+  | 'hand-written';
+
+export type App = Record<string, unknown[]>;
+
+/** A TailscaleGrant entity, next to the hand-written policy. */
+export interface CapabilityGrant {
+  entity: string;
+  title?: string;
+  description?: string;
+  targets: string[];
+  src: string[];
+  dst: string[];
+  ip: string[];
+  app: App;
+  status: CapabilityStatus;
+  counterpart?: PolicyGrantRef;
+  differences: string[];
+}
+
+export interface HandWrittenCapability extends PolicyGrantRef {
+  src: string[];
+  dst: string[];
+  ip: string[];
+  app: App;
+  status: HandWrittenCapabilityStatus;
+  declaredBy?: string;
+}
+
 export interface Overview {
   renderedAt: string;
   basePolicyUrl: string;
@@ -69,6 +102,20 @@ export interface Overview {
   invalid: Finding[];
   missingSource: Finding[];
   tagOwners: Record<string, string[]>;
+  capabilities: {
+    summary: Record<
+      | 'grants'
+      | 'match'
+      | 'differs'
+      | 'new'
+      | 'declared'
+      | 'missing'
+      | 'handWritten',
+      number
+    >;
+    grants: CapabilityGrant[];
+    handWritten: HandWrittenCapability[];
+  };
   publish?: {
     repo: string;
     path: string;

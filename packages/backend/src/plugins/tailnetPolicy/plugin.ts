@@ -10,6 +10,7 @@ import {
 import { catalogServiceRef } from '@backstage/plugin-catalog-node';
 import Router from 'express-promise-router';
 import { buildTailnetGraph } from './graph';
+import { isTailscaleGrant } from './kind';
 import { parsePolicy } from './policy';
 import { publishPolicy, type PublishTarget } from './publish';
 import { analyze, policyText, reportMarkdown, type Analysis } from './render';
@@ -24,6 +25,19 @@ export interface PublishStatus {
 
 /** GET /overview: the analysis, and where it is published. */
 export type Overview = Analysis & { publish?: PublishStatus };
+
+/** What the analysis reads from catalog entities; nothing else is fetched. */
+export const CATALOG_FIELDS = [
+  'apiVersion',
+  'kind',
+  'metadata.name',
+  'metadata.namespace',
+  'metadata.title',
+  'metadata.description',
+  'metadata.annotations',
+  'spec',
+  'relations',
+];
 
 /**
  * Renders Tailscale grants from the catalog's dependency graph and compares
@@ -83,25 +97,21 @@ export const tailnetPolicyPlugin = createBackendPlugin({
                 { kind: 'Component' },
                 { kind: 'API' },
                 { kind: 'Resource', 'spec.type': 'kubernetes-cluster' },
+                { kind: 'TailscaleGrant' },
               ],
-              fields: [
-                'kind',
-                'metadata.name',
-                'metadata.namespace',
-                'metadata.annotations',
-                'spec.type',
-                'relations',
-              ],
+              fields: CATALOG_FIELDS,
             },
             { credentials },
           );
           const base = await urlReader.readUrl(basePolicyUrl);
           const parsed = parsePolicy((await base.buffer()).toString('utf8'));
-          return analyze(buildTailnetGraph(items as Entity[]), parsed, {
-            basePolicyUrl,
-            clusterTagOwners,
-            defaultTagOwners,
-          });
+          const entities = items as Entity[];
+          return analyze(
+            buildTailnetGraph(entities),
+            parsed,
+            { basePolicyUrl, clusterTagOwners, defaultTagOwners },
+            entities.filter(isTailscaleGrant),
+          );
         };
 
         // Page views and entity cards read this; keep GitHub and the catalog

@@ -108,6 +108,52 @@ const overview: Overview = {
   invalid: [],
   missingSource: [],
   tagOwners: {},
+  capabilities: {
+    summary: {
+      grants: 1,
+      match: 0,
+      differs: 1,
+      new: 0,
+      declared: 0,
+      missing: 1,
+      handWritten: 1,
+    },
+    grants: [
+      {
+        entity: 'tailscalegrant:default/tka-admins',
+        title: 'Admins are cluster-admin through TKA',
+        targets: ['component:default/tka'],
+        src: ['group:admins'],
+        dst: ['tag:tka'],
+        ip: ['*'],
+        app: {
+          'specht-labs.de/cap/tka': [{ role: 'cluster-admin', period: '8h' }],
+        },
+        status: 'differs',
+        counterpart: {
+          number: 12,
+          line: 200,
+          text: 'group:admins → tag:tka : *',
+        },
+        differences: ['specht-labs.de/cap/tka: different values'],
+      },
+    ],
+    handWritten: [
+      {
+        number: 12,
+        line: 200,
+        text: 'group:admins → tag:tka : *',
+        src: ['group:admins'],
+        dst: ['tag:tka'],
+        ip: ['*'],
+        app: {
+          'specht-labs.de/cap/tka': [{ role: 'cluster-admin', period: '1h' }],
+        },
+        status: 'differs',
+        declaredBy: 'tailscalegrant:default/tka-admins',
+      },
+    ],
+  },
   publish: {
     repo: 'SpechtLabs/tailnet-policy-sandbox',
     path: 'tailscale/generated.hujson',
@@ -148,6 +194,8 @@ describe('TailnetPolicyPage', () => {
       screen.getByText('Pull request in SpechtLabs/tailnet-policy-sandbox'),
     ).toBeInTheDocument();
     expect(screen.getByText('1 edges inside a cluster')).toBeInTheDocument();
+    expect(screen.getByText('Capability grants')).toBeInTheDocument();
+    expect(screen.getAllByText('A TailscaleGrant differs').length).toBe(1);
   });
 });
 
@@ -174,6 +222,29 @@ describe('EntityTailnetPolicyCard', () => {
     await renderCard(entity('Component', 'argocd-labk3s'));
     expect(
       await screen.findByText('Reached over the tailnet by'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the capability grants for a target', async () => {
+    await renderCard(entity('Component', 'tka'));
+    expect(await screen.findByText('Capability grants')).toBeInTheDocument();
+    expect(screen.getByText('specht-labs.de/cap/tka')).toBeInTheDocument();
+    expect(
+      screen.getByText('Differs from the hand-written grant'),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a TailscaleGrant's own grant", async () => {
+    await renderCard({
+      apiVersion: 'specht-labs.de/v1alpha1',
+      kind: 'TailscaleGrant',
+      metadata: { name: 'tka-admins', namespace: 'default' },
+      spec: {},
+    });
+    expect(await screen.findByText('The grant')).toBeInTheDocument();
+    expect(screen.getByText('group:admins')).toBeInTheDocument();
+    expect(
+      screen.getByText('specht-labs.de/cap/tka: different values'),
     ).toBeInTheDocument();
   });
 

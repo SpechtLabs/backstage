@@ -23,6 +23,15 @@ backend.add(
 
 // techdocs plugin
 backend.add(import('@backstage/plugin-techdocs-backend'));
+// TechDocs editor: edit docs in the browser, submitted as a pull request
+// through the GitHub integration. /alpha registers its GitHub provider.
+backend.add(import('@estehsaan/backstage-plugin-techdocs-editor-backend'));
+backend.add(
+  import('@estehsaan/backstage-plugin-techdocs-editor-backend/alpha'),
+);
+
+// devtools: backend info, the merged config and scheduled tasks, under /devtools.
+backend.add(import('@backstage/plugin-devtools-backend'));
 
 // auth plugin
 backend.add(import('@backstage/plugin-auth-backend'));
@@ -34,6 +43,9 @@ backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
 // tsidp (Tailscale's OIDC IdP): auth.providers.oidc in app-config. The stock
 // oidc module with tsidp's email trusted, see ./modules/tsidpAuth.
 backend.add(authModuleTsidpProvider);
+// GitHub, not for sign-in: the user's GitHub token for the GitHub insights
+// and pull requests cards (auth.providers.github, in the cluster config).
+backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
 
 // catalog plugin
 backend.add(import('@backstage/plugin-catalog-backend'));

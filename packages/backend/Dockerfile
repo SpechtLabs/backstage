@@ -51,9 +51,16 @@ FROM node:24.22.3-trixie-slim
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
-    apt-get install -y --no-install-recommends python3 g++ build-essential && \
+    apt-get install -y --no-install-recommends python3 python3-venv g++ build-essential && \
     rm -rf /var/lib/apt/lists/*
 ENV PYTHON=/usr/bin/python3
+
+# TechDocs builds docs in-process (techdocs.generator.runIn: local): mkdocs
+# with the TechDocs plugins, in a virtualenv (Debian's Python refuses
+# system-wide pip installs).
+RUN python3 -m venv /opt/techdocs && \
+    /opt/techdocs/bin/pip install --no-cache-dir mkdocs-techdocs-core==1.7.1
+ENV PATH="/opt/techdocs/bin:${PATH}"
 
 # From here on, the least-privileged `node` user (uid 1000).
 USER node

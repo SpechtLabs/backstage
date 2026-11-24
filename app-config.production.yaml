@@ -47,3 +47,18 @@ catalog:
       target: ./catalog/org.yaml
       rules:
         - allow: [User, Group]
+
+# TechDocs: build in this container (mkdocs is in the image) when a page is
+# first opened, and serve from its filesystem. A restart rebuilds on demand.
+techdocs:
+  builder: local
+  generator:
+    runIn: local
+  publisher:
+    type: local
+
+# The Grafana plugin (dashboards and alerts on entity pages). The proxy to it,
+# with the token, is in the cluster config; until then the cards show an error.
+grafana:
+  domain: https://spechtlabs.grafana.net
+  unifiedAlerting: true

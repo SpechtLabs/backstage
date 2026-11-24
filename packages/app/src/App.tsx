@@ -1,9 +1,17 @@
 import { createApp } from '@backstage/frontend-defaults';
 import catalogPlugin from '@backstage/plugin-catalog/alpha';
 import { authModule } from './modules/auth';
+import { apiDocsGrpcModule, grpcDocsPlugin } from './modules/grpcDocs';
 import { navModule } from './modules/nav';
 import { homeModule } from './modules/home';
 
 export default createApp({
-  features: [catalogPlugin, authModule, navModule, homeModule],
+  features: [
+    catalogPlugin,
+    authModule,
+    navModule,
+    homeModule,
+    grpcDocsPlugin,
+    apiDocsGrpcModule,
+  ],
 });

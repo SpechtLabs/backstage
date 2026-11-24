@@ -11,6 +11,8 @@ metadata:
     backstage.io/kubernetes-label-selector: app.kubernetes.io/name=backstage
     # The ArgoCD cards: the Application on specht-labs.
     argocd/app-name: backstage
+    # TechDocs: mkdocs.yml and docs/ in this repo.
+    backstage.io/techdocs-ref: dir:.
   links:
     - url: https://backstage.k8s.specht-labs.de
       title: Backstage

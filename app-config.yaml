@@ -102,12 +102,16 @@ backend:
   database:
     client: better-sqlite3
     connection: ':memory:'
-  # see https://backstage.io/docs/ai/mcp-actions#actions-configuration for more details
   actions:
+    # The plugins whose actions become MCP tools (mcpActions below). Not the
+    # scaffolder: its execute-template creates GitHub repos through the
+    # GitHub App.
     pluginSources:
-      - auth
       - catalog
-      - scaffolder
+      - kubernetes
+      - search
+      - techdocs
+      - auth
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
 
 integrations:
@@ -147,8 +151,11 @@ auth:
     guest: {}
   # see https://backstage.io/docs/ai/mcp-actions#client-id-metadata-documents
   # to learn more about client id metadata documents
+  # MCP clients (Claude, Cursor, VS Code, Codex) sign in through this: the
+  # client asks Backstage for a token, you approve it in Backstage after the
+  # usual tsidp sign-in. No static token to hand out.
   clientIdMetadataDocuments:
-    enabled: false
+    enabled: true
     # Optional: restrict which `client_id` URLs are allowed (defaults to ['*'])
     # allowedClientIdPatterns:
     #   - 'https://example.com/*'
@@ -203,9 +210,24 @@ permission:
   enabled: true
 
 # see https://backstage.io/docs/ai/mcp-actions for more details
+# MCP: /api/mcp-actions/v1 serves the actions of the plugins in
+# backend.actions.pluginSources as tools, as the signed-in user.
 mcpActions:
-  name: 'SpechtLabs Backstage' # defaults to "backstage"
-  description: 'Tools for managing your software catalog, creating new services from templates, and exploring your developer portal' # optional
+  name: 'SpechtLabs Backstage'
+  description: >-
+    Query SpechtLabs' software catalog (components, APIs, resources, systems,
+    owners and their relations), see the Kubernetes workloads behind a
+    component, search the catalog and TechDocs, and validate or register
+    catalog-info.yaml files.
+  instructions: >-
+    The catalog covers two Kubernetes clusters: specht-labs (Hetzner, GitOps
+    from SpechtLabs/k8s-deployment) and labk3s (the homelab k3s cluster).
+    Components on labk3s carry a -labk3s suffix when the same app also runs on
+    specht-labs (argocd-labk3s, tka-labk3s). Systems group them (homelab,
+    observability, and so on); resources include the clusters themselves
+    (resource:labk3s) and their storage. Query the catalog before assuming an
+    entity exists; use get-catalog-model-description for the entity kinds and
+    fields. The Kubernetes tools only see specht-labs.
 
 # Tech Radar: SpechtLabs' stack, in tech-radar.json in this repo. Read from
 # GitHub at runtime, so editing it needs no release. Required: the

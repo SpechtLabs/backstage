@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on monday"],
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Dependency Dashboard",
+  "rangeStrategy": "bump",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 10,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": ["dependencies", "security"],
+    "schedule": ["at any time"]
+  },
+  "packageRules": [
+    {
+      "description": "Backstage ships its packages as one release: update them together, like `backstage-cli versions:bump` would.",
+      "matchPackageNames": ["@backstage/**", "@backstage-community/**"],
+      "groupName": "backstage",
+      "groupSlug": "backstage"
+    },
+    {
+      "description": "Node in mise.toml and the Dockerfile's base images move together: native modules built in one must load in the other.",
+      "matchDepNames": ["node"],
+      "groupName": "node",
+      "groupSlug": "node"
+    },
+    {
+      "description": "Node: stay on even-numbered (LTS) majors.",
+      "matchDepNames": ["node"],
+      "allowedVersions": "/^\\d*[02468]\\./"
+    },
+    {
+      "description": "Automerge everything but majors once the image build passes. Renovate merges itself (no platform automerge): the repo has no required checks, so GitHub's auto-merge would not wait for CI.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "pinDigest", "digest", "lockFileMaintenance"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": false
+    },
+    {
+      "description": "Majors wait for approval on the Dependency Dashboard.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

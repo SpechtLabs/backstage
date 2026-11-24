@@ -3,43 +3,32 @@ import { HomePageWidgetBlueprint } from '@backstage/plugin-home-react/alpha';
 import { MarkdownContent } from '@backstage/core-components';
 
 const content = `
-## Welcome to Backstage! 👋
+The catalog of everything SpechtLabs runs: services, the infrastructure
+under them, who owns what, and where it is deployed.
 
-Backstage is your developer portal — a single place to manage all your
-software, services, and documentation.
+- **[Catalog](/catalog)**: components, systems and resources. A component's
+  *Kubernetes* tab shows its pods on specht-labs.
+- **[Create](/create)**: scaffold something new from a template.
+- **[Docs](/docs)**: TechDocs next to the code.
 
-### Quick Start
+### Add something to the catalog
 
-- **Explore the catalog** — Browse all your organization's software in
-  the [Software Catalog](/catalog)
-- **Create something new** — Use a [Software Template](/create) to
-  scaffold a new project in minutes
-- **Read the docs** — Find technical documentation for any service
-  right from its catalog page
+Put a \`catalog-info.yaml\` in the repo
+([format](https://backstage.io/docs/features/software-catalog/descriptor-format))
+and [register it](/catalog-import). To show its workloads, annotate it with
+\`backstage.io/kubernetes-label-selector\` (and
+\`backstage.io/kubernetes-namespace\`).
 
-### Helpful Links
-
-- [Backstage Documentation](https://backstage.io/docs)
-- [Customizing Your Homepage](https://backstage.io/docs/getting-started/homepage)
-- [Adding Plugins](https://backstage.io/docs/plugins)
-- [Contributing](https://github.com/backstage/backstage/blob/master/CONTRIBUTING.md)
-
-### How to Edit This Card
-
-This widget is defined in \`packages/app/src/modules/home/homeModule.tsx\`.
-You can update the markdown content there to welcome your team with
-your own links and getting started tips.
-
-To remove this card entirely, delete the getting started widget and
-remove it from the home module's extensions array in this file.
+This card lives in \`packages/app/src/modules/home/homeModule.tsx\` in
+[SpechtLabs/backstage](https://github.com/SpechtLabs/backstage).
 `;
 
-const gettingStartedWidget = HomePageWidgetBlueprint.make({
-  name: 'getting-started',
+const welcomeWidget = HomePageWidgetBlueprint.make({
+  name: 'welcome',
   params: {
-    name: 'GettingStarted',
-    title: 'Getting Started',
-    description: 'Tips and links to help you get started with Backstage',
+    name: 'Welcome',
+    title: 'SpechtLabs Backstage',
+    description: 'What is here and how to add to it',
     components: async () => ({
       Content: () => <MarkdownContent content={content} />,
     }),
@@ -48,5 +37,5 @@ const gettingStartedWidget = HomePageWidgetBlueprint.make({
 
 export const homeModule = createFrontendModule({
   pluginId: 'home',
-  extensions: [gettingStartedWidget],
+  extensions: [welcomeWidget],
 });

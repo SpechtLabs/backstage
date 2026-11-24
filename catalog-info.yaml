@@ -1,13 +1,32 @@
+# Backstage itself, as a catalog entity.
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: backstage
-  description: An example of a Backstage application.
-  # Example for optional annotations
-  # annotations:
-  #   github.com/project-slug: backstage/backstage
-  #   backstage.io/techdocs-ref: dir:.
+  description: SpechtLabs' developer portal and software catalog.
+  annotations:
+    github.com/project-slug: SpechtLabs/backstage
+    # The Kubernetes tab: these pods on specht-labs.
+    backstage.io/kubernetes-namespace: backstage
+    backstage.io/kubernetes-label-selector: app.kubernetes.io/name=backstage
+  links:
+    - url: https://backstage.k8s.specht-labs.de
+      title: Backstage
 spec:
   type: website
-  owner: john@example.com
-  lifecycle: experimental
+  owner: group:spechtlabs
+  lifecycle: production
+  dependsOn:
+    - resource:backstage-db
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: backstage-db
+  description: Backstage's PostgreSQL, a CloudNativePG Cluster backed up to Hetzner Object Storage.
+  annotations:
+    backstage.io/kubernetes-namespace: backstage
+    backstage.io/kubernetes-label-selector: cnpg.io/cluster=backstage-db
+spec:
+  type: database
+  owner: group:spechtlabs

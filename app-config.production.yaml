@@ -42,3 +42,8 @@ catalog:
       target: ./catalog/org.yaml
       rules:
         - allow: [User, Group]
+    # Backstage's own entities (copied into the image).
+    - type: file
+      target: ./catalog-info.yaml
+      rules:
+        - allow: [Component, Resource]

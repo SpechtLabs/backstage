@@ -1,7 +1,7 @@
 import type { Entity } from '@backstage/catalog-model';
 import { buildTailnetGraph } from './graph';
 import { parsePolicy } from './policy';
-import { renderPolicy } from './render';
+import { analyze, policyText, reportMarkdown } from './render';
 
 function entity(
   kind: string,
@@ -143,6 +143,7 @@ describe('buildTailnetGraph', () => {
       {
         consumer: 'component:default/backstage',
         api: 'api:default/argocd-api',
+        providers: ['component:default/argocd'],
         cluster: 'resource:default/specht-labs',
       },
     ]);
@@ -162,40 +163,42 @@ describe('buildTailnetGraph', () => {
   });
 });
 
-describe('renderPolicy', () => {
-  const rendered = renderPolicy(buildTailnetGraph(catalog), base, options);
+describe('analyze', () => {
+  const analysis = analyze(buildTailnetGraph(catalog), base, options);
+  const from = (g: { edges: { consumer: string; api: string }[] }) =>
+    g.edges.map(e => `${e.consumer} → ${e.api}`);
 
   it('renders one grant per src/dst/ports', () => {
-    expect(rendered.grants.map(g => [g.src, g.dst, g.ip, g.from])).toEqual([
+    expect(analysis.grants.map(g => [g.src, g.dst, g.ip, from(g)])).toEqual([
       [
         ['tag:backstage'],
         ['tag:lab-argocd'],
         ['tcp:443'],
-        ['component:backstage → api:argocd-labk3s-api'],
+        ['component:default/backstage → api:default/argocd-labk3s-api'],
       ],
       [
         ['tag:homelab'],
         ['tag:core-infra'],
         ['tcp:3493'],
-        ['component:nut-client → api:nut'],
+        ['component:default/nut-client → api:default/nut'],
       ],
       [
         ['tag:homelab'],
         ['tag:homelab'],
         ['tcp:6443'],
-        ['component:k3s-agent → api:k3s-api'],
+        ['component:default/k3s-agent → api:default/k3s-api'],
       ],
       [
         ['tag:newcomer'],
         ['tag:homelab'],
         ['tcp:6443'],
-        ['component:newcomer → api:k3s-api'],
+        ['component:default/newcomer → api:default/k3s-api'],
       ],
     ]);
   });
 
   it('compares with the hand-written policy', () => {
-    expect(rendered.summary).toEqual({
+    expect(analysis.summary).toEqual({
       grants: 4,
       match: 2, // backstage, nut
       broad: 1, // k3s-agent, by the homelab zone rule
@@ -206,25 +209,42 @@ describe('renderPolicy', () => {
     });
   });
 
-  it('owns new tags and writes tests', () => {
-    expect(rendered.tagOwners).toEqual({
+  it('points at the hand-written grants, with their lines', () => {
+    expect(analysis.grants[0].allowedBy).toEqual([
+      { number: 4, line: 11, text: 'tag:backstage → tag:lab-argocd : tcp:443' },
+    ]);
+    expect(analysis.grants[2].allowedBy.map(g => g.number)).toEqual([2]);
+    expect(
+      analysis.handWritten.map(g => [g.number, g.status, g.coveredBy]),
+    ).toEqual([
+      [3, 'partial', ['tag:homelab → tag:core-infra : tcp:3493']],
+      [4, 'declared', ['tag:backstage → tag:lab-argocd : tcp:443']],
+      [5, 'missing', []],
+    ]);
+  });
+
+  it('owns new tags', () => {
+    expect(analysis.tagOwners).toEqual({
       'tag:core-infra': ['group:admins'],
       'tag:homelab': ['group:admins'],
       'tag:newcomer': ['group:admins'],
     });
-    expect(rendered.tests[0]).toEqual({
-      src: 'tag:backstage',
-      accept: ['tag:lab-argocd:443'],
-    });
   });
 
-  it('writes a policy that parses back', () => {
-    const parsed = parsePolicy(rendered.policyText);
-    expect(parsed.grants).toHaveLength(4);
-    expect(parsed.grants![0]).toEqual({
+  it('writes a fragment that parses back, without tests', () => {
+    const { policy } = parsePolicy(policyText(analysis));
+    expect(policy.grants).toHaveLength(4);
+    expect(policy.grants![0]).toEqual({
       src: ['tag:backstage'],
       dst: ['tag:lab-argocd'],
       ip: ['tcp:443'],
     });
+    expect(policy.tests).toBeUndefined();
+  });
+
+  it('links the report to the policy file', () => {
+    expect(reportMarkdown(analysis)).toContain(
+      '[#4](https://example.com/policy.hujson#L11)',
+    );
   });
 });

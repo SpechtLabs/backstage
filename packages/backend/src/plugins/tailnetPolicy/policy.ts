@@ -1,4 +1,10 @@
-import JSON5 from 'json5';
+import {
+  findNodeAtLocation,
+  getNodeValue,
+  parseTree,
+  printParseErrorCode,
+  type ParseError,
+} from 'jsonc-parser';
 import {
   formatPort,
   isWildcardPort,
@@ -21,9 +27,28 @@ export interface Policy {
   tests?: unknown[];
 }
 
-/** policy.hujson is JSON with comments and trailing commas: JSON5 reads it. */
-export function parsePolicy(text: string): Policy {
-  return JSON5.parse(text) as Policy;
+export interface ParsedPolicy {
+  policy: Policy;
+  /** The 1-based line each grant starts on, for links into the file. */
+  grantLines: number[];
+}
+
+/** policy.hujson: JSON with comments and trailing commas. */
+export function parsePolicy(text: string): ParsedPolicy {
+  const errors: ParseError[] = [];
+  const tree = parseTree(text, errors, { allowTrailingComma: true });
+  if (!tree || errors.length) {
+    const detail = errors
+      .map(e => `${printParseErrorCode(e.error)} at offset ${e.offset}`)
+      .join(', ');
+    throw new Error(`The policy file does not parse: ${detail}`);
+  }
+  const lineOf = (offset: number) => text.slice(0, offset).split('\n').length;
+  const grants = findNodeAtLocation(tree, ['grants']);
+  return {
+    policy: getNodeValue(tree) as Policy,
+    grantLines: (grants?.children ?? []).map(node => lineOf(node.offset)),
+  };
 }
 
 /** One src -> dst flow on one port range. */

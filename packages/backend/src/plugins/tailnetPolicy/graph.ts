@@ -40,6 +40,7 @@ export interface TailnetEdge {
 export interface LocalEdge {
   consumer: string;
   api: string;
+  providers: string[];
   cluster: string;
 }
 
@@ -158,7 +159,7 @@ export function buildTailnetGraph(entities: Entity[]): TailnetGraph {
       const dstClusters = [...new Set(providers.flatMap(clustersOf))];
       const shared = srcClusters.find(c => dstClusters.includes(c));
       if (shared && providers.every(p => clustersOf(p).includes(shared))) {
-        graph.local.push({ consumer, api: apiRef, cluster: shared });
+        graph.local.push({ consumer, api: apiRef, providers, cluster: shared });
         continue;
       }
       if (!src.length) {

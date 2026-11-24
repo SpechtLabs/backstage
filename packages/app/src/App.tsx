@@ -6,6 +6,7 @@ import { navModule } from './modules/nav';
 import { openCostPlugin } from './modules/opencost';
 import { themeModule } from './modules/theme';
 import { homeModule } from './modules/home';
+import { tailnetPolicyPlugin } from './modules/tailnetPolicy';
 
 export default createApp({
   features: [
@@ -17,5 +18,6 @@ export default createApp({
     grpcDocsPlugin,
     apiDocsGrpcModule,
     openCostPlugin,
+    tailnetPolicyPlugin,
   ],
 });

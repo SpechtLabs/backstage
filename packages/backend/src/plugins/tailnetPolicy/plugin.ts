@@ -12,13 +12,25 @@ import Router from 'express-promise-router';
 import { buildTailnetGraph } from './graph';
 import { parsePolicy } from './policy';
 import { publishPolicy, type PublishTarget } from './publish';
-import { renderPolicy, type Rendered } from './render';
+import { analyze, policyText, reportMarkdown, type Analysis } from './render';
+
+/** The last publish run, for the UI. */
+export interface PublishStatus {
+  repo: string;
+  path: string;
+  branch: string;
+  last?: { at: string; outcome: string; url?: string };
+}
+
+/** GET /overview: the analysis, and where it is published. */
+export type Overview = Analysis & { publish?: PublishStatus };
 
 /**
  * Renders Tailscale grants from the catalog's dependency graph and compares
  * them with the hand-written policy (shadow mode). See graph.ts for the
  * annotations it reads.
  *
+ *   GET /api/tailnet-policy/overview the analysis as JSON, for the UI
  *   GET /api/tailnet-policy/policy   the generated policy fragment (HuJSON)
  *   GET /api/tailnet-policy/report   the comparison, as Markdown
  *
@@ -63,7 +75,7 @@ export const tailnetPolicyPlugin = createBackendPlugin({
           'defaultTagOwners',
         ) ?? ['group:admins'];
 
-        const render = async (): Promise<Rendered> => {
+        const analyzeNow = async (): Promise<Analysis> => {
           const credentials = await auth.getOwnServiceCredentials();
           const { items } = await catalog.getEntities(
             {
@@ -84,32 +96,60 @@ export const tailnetPolicyPlugin = createBackendPlugin({
             { credentials },
           );
           const base = await urlReader.readUrl(basePolicyUrl);
-          const policy = parsePolicy((await base.buffer()).toString('utf8'));
-          return renderPolicy(buildTailnetGraph(items as Entity[]), policy, {
+          const parsed = parsePolicy((await base.buffer()).toString('utf8'));
+          return analyze(buildTailnetGraph(items as Entity[]), parsed, {
             basePolicyUrl,
             clusterTagOwners,
             defaultTagOwners,
           });
         };
 
-        const router = Router();
-        router.get('/policy', async (_req, res) => {
-          res.type('text/plain').send((await render()).policyText);
-        });
-        router.get('/report', async (_req, res) => {
-          res.type('text/markdown').send((await render()).report);
-        });
-        httpRouter.use(router);
+        // Page views and entity cards read this; keep GitHub and the catalog
+        // out of every request.
+        let cached: { at: number; analysis: Promise<Analysis> } | undefined;
+        const current = (maxAgeMs = 2 * 60 * 1000) => {
+          if (!cached || Date.now() - cached.at > maxAgeMs) {
+            const analysis = analyzeNow();
+            cached = { at: Date.now(), analysis };
+            analysis.catch(() => {
+              if (cached?.analysis === analysis) cached = undefined;
+            });
+          }
+          return cached.analysis;
+        };
 
         const publish = settings.getOptionalConfig('publish');
-        if (!publish) return;
-        const target: PublishTarget = {
+        const target: PublishTarget | undefined = publish && {
           repo: publish.getString('repo'),
           path:
             publish.getOptionalString('path') ?? 'tailscale/generated.hujson',
           branch:
             publish.getOptionalString('branch') ?? 'backstage/tailnet-policy',
         };
+        let lastPublish: PublishStatus['last'];
+
+        const router = Router();
+        router.get('/overview', async (_req, res) => {
+          const body: Overview = {
+            ...(await current()),
+            publish: target && {
+              repo: target.repo,
+              path: target.path,
+              branch: target.branch,
+              last: lastPublish,
+            },
+          };
+          res.json(body);
+        });
+        router.get('/policy', async (_req, res) => {
+          res.type('text/plain').send(policyText(await current()));
+        });
+        router.get('/report', async (_req, res) => {
+          res.type('text/markdown').send(reportMarkdown(await current()));
+        });
+        httpRouter.use(router);
+
+        if (!target) return;
         const github = DefaultGithubCredentialsProvider.fromIntegrations(
           ScmIntegrations.fromConfig(config),
         );
@@ -121,23 +161,28 @@ export const tailnetPolicyPlugin = createBackendPlugin({
           // Let the catalog settle after a restart before reading it.
           initialDelay: { minutes: 3 },
           fn: async () => {
-            const rendered = await render();
-            const { match, broad, grants } = rendered.summary;
+            const analysis = await current(0);
+            const { match, broad, grants } = analysis.summary;
             const result = await publishPolicy(
               github,
               target,
               {
-                policyText: rendered.policyText,
-                title: `feat(tailscale): ${grants} grants from the catalog (${match} match, ${broad} broad, ${rendered.summary.new} new)`,
-                body: rendered.report,
+                policyText: policyText(analysis),
+                title: `feat(tailscale): ${grants} grants from the catalog (${match} match, ${broad} broad, ${analysis.summary.new} new)`,
+                body: reportMarkdown(analysis),
               },
               logger,
             );
+            lastPublish = {
+              at: new Date().toISOString(),
+              outcome: result.outcome,
+              url: 'url' in result ? result.url : undefined,
+            };
             logger.info(
               `tailnet policy: ${result.outcome}${
                 'url' in result ? ` ${result.url}` : ''
               }`,
-              rendered.summary,
+              analysis.summary,
             );
           },
         });

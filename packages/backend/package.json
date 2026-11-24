@@ -62,7 +62,7 @@
     "@estehsaan/backstage-plugin-techdocs-editor-backend": "^2.1.1",
     "app": "link:../app",
     "express-promise-router": "^4.1.1",
-    "json5": "^2.2.3",
+    "jsonc-parser": "^2.2.1",
     "luxon": "^3.7.2",
     "node-gyp": "^10.0.0",
     "pg": "^8.11.3"

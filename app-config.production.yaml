@@ -36,14 +36,14 @@ auth:
   environment: production
 
 catalog:
+  # Everything else, Backstage's own catalog-info.yaml included, comes from
+  # GitHub discovery (catalog.providers.github, in the cluster config).
+  # Entities whose source stops emitting them are deleted, not kept: git is
+  # the source of truth.
+  orphanStrategy: delete
   # Replaces the example locations from app-config.yaml.
   locations:
     - type: file
       target: ./catalog/org.yaml
       rules:
         - allow: [User, Group]
-    # Backstage's own entities (copied into the image).
-    - type: file
-      target: ./catalog-info.yaml
-      rules:
-        - allow: [Component, Resource]

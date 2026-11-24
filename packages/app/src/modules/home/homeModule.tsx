@@ -13,11 +13,14 @@ under them, who owns what, and where it is deployed.
 
 ### Add something to the catalog
 
-Put a \`catalog-info.yaml\` in the repo
-([format](https://backstage.io/docs/features/software-catalog/descriptor-format))
-and [register it](/catalog-import). To show its workloads, annotate it with
-\`backstage.io/kubernetes-label-selector\` (and
-\`backstage.io/kubernetes-namespace\`).
+Put a \`catalog-info.yaml\` at the root of any SpechtLabs repo
+([format](https://backstage.io/docs/features/software-catalog/descriptor-format)):
+discovery picks it up within 30 minutes. Annotations wire up the tabs:
+
+- \`argocd/app-name\`: its ArgoCD Application
+- \`backstage.io/kubernetes-label-selector\` (and
+  \`backstage.io/kubernetes-namespace\`): its workloads
+- \`github.com/project-slug\`: its repo
 
 This card lives in \`packages/app/src/modules/home/homeModule.tsx\` in
 [SpechtLabs/backstage](https://github.com/SpechtLabs/backstage).

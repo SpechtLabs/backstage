@@ -43,7 +43,14 @@
     },
     {
       "description": "Automerge everything but majors once the image build passes. Renovate merges itself (no platform automerge): the repo has no required checks, so GitHub's auto-merge would not wait for CI.",
-      "matchUpdateTypes": ["minor", "patch", "pin", "pinDigest", "digest", "lockFileMaintenance"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest",
+        "lockFileMaintenance"
+      ],
       "automerge": true,
       "automergeType": "pr",
       "platformAutomerge": false

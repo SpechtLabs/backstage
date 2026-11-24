@@ -44,6 +44,11 @@ backend.add(
 // See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
 backend.add(import('@backstage/plugin-catalog-backend-module-logs'));
 
+// GitHub discovery: catalog-info.yaml from every SpechtLabs repo
+// (catalog.providers.github, set by the cluster config along with the GitHub
+// App credentials; without that config it registers no provider).
+backend.add(import('@backstage/plugin-catalog-backend-module-github'));
+
 // permission plugin
 backend.add(import('@backstage/plugin-permission-backend'));
 // See https://backstage.io/docs/permissions/getting-started for how to create your own permission policy

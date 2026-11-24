@@ -9,6 +9,8 @@ metadata:
     # The Kubernetes tab: these pods on specht-labs.
     backstage.io/kubernetes-namespace: backstage
     backstage.io/kubernetes-label-selector: app.kubernetes.io/name=backstage
+    # The ArgoCD cards: the Application on specht-labs.
+    argocd/app-name: backstage
   links:
     - url: https://backstage.k8s.specht-labs.de
       title: Backstage

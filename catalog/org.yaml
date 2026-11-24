@@ -1,0 +1,25 @@
+# Users and groups. Sign-in maps the tsidp token's `email` claim (your
+# Tailscale login name) to spec.profile.email here, through the
+# emailMatchingUserEntityProfileEmail resolver: the two must match exactly.
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: cedi
+spec:
+  profile:
+    displayName: Cedric Specht
+    # TODO: your Tailscale login name, exactly as tsidp's `email` claim has
+    # it. A failed sign-in names the email it could not match.
+    email: cedi@github.idp.sphinx-map.ts.net
+  memberOf: [spechtlabs]
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: spechtlabs
+spec:
+  type: organization
+  profile:
+    displayName: SpechtLabs
+  children: []

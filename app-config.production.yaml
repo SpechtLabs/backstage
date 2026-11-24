@@ -1,0 +1,41 @@
+# Production settings baked into the image. Deployment-specific values (URLs,
+# the OIDC provider) come from the cluster: k8s-deployment,
+# apps/backstage/cluster/<cluster>/app-config.cluster.yaml, loaded after this.
+
+app:
+  # Should be the same as backend.baseUrl when using the `app-backend` plugin.
+  baseUrl: http://localhost:7007
+
+backend:
+  # The URL browsers and other clients use to reach the backend.
+  baseUrl: http://localhost:7007
+  listen: ':7007'
+
+  # config options: https://node-postgres.com/apis/client
+  # The env vars come from the CNPG-generated Secret <cluster>-app.
+  database:
+    client: pg
+    # One database, one schema per plugin. The default (one database per
+    # plugin) would need CREATEDB for the database role.
+    pluginDivisionMode: schema
+    connection:
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      database: ${POSTGRES_DB}
+
+# Sign-in is tsidp only: auth.providers.oidc, set by the cluster config. The
+# guest provider from app-config.yaml stays configured (config files merge,
+# they can't remove a key), but it refuses every sign-in when NODE_ENV is not
+# `development`, and the image sets NODE_ENV=production.
+auth:
+  environment: production
+
+catalog:
+  # Replaces the example locations from app-config.yaml.
+  locations:
+    - type: file
+      target: ./catalog/org.yaml
+      rules:
+        - allow: [User, Group]

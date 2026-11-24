@@ -1,0 +1,6 @@
+# Local tooling, exact pins. Renovate keeps them current.
+[tools]
+actionlint = "1.7.12"
+node = "24.22.3"
+pinact = "5.0.2"
+yarn = "4.19.0"

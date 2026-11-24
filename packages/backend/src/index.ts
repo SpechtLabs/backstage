@@ -7,6 +7,7 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+import { authModuleTsidpProvider } from './modules/tsidpAuth';
 
 const backend = createBackend();
 
@@ -30,8 +31,9 @@ backend.add(import('@backstage/plugin-auth-backend'));
 // run outside auth.environment `development`.
 backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
 // See https://backstage.io/docs/auth/guest/provider
-// tsidp (Tailscale's OIDC IdP): auth.providers.oidc in app-config.
-backend.add(import('@backstage/plugin-auth-backend-module-oidc-provider'));
+// tsidp (Tailscale's OIDC IdP): auth.providers.oidc in app-config. The stock
+// oidc module with tsidp's email trusted, see ./modules/tsidpAuth.
+backend.add(authModuleTsidpProvider);
 
 // catalog plugin
 backend.add(import('@backstage/plugin-catalog-backend'));

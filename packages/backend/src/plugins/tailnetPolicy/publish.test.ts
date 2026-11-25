@@ -41,7 +41,9 @@ function fakeGitHub() {
     const path = pathname.replace('/repos/o/r', '');
     const method = init.method ?? 'GET';
     const body = init.body ? JSON.parse(init.body as string) : undefined;
-    let m: RegExpMatchArray | null;
+    // The route's captured parameter, if the method and path match.
+    const route = (verb: string, pattern: RegExp) =>
+      method === verb ? path.match(pattern)?.[1] : undefined;
 
     if (method === 'GET' && path === '')
       return json({ default_branch: 'main' });
@@ -56,9 +58,10 @@ function fakeGitHub() {
           })),
       );
     }
-    if (method === 'GET' && (m = path.match(/^\/contents\/(.+)$/))) {
+    const p1 = route('GET', /^\/contents\/(.+)$/);
+    if (p1 !== undefined) {
       const sha = refs.get(searchParams.get('ref')!);
-      const text = sha && files.get(sha)?.[m[1]];
+      const text = sha && files.get(sha)?.[p1];
       if (text === undefined || text === '')
         return json({ message: 'Not Found' }, 404);
       return json({
@@ -66,11 +69,13 @@ function fakeGitHub() {
         content: Buffer.from(text).toString('base64'),
       });
     }
-    if (method === 'GET' && (m = path.match(/^\/git\/ref\/heads\/(.+)$/))) {
-      return json({ object: { sha: refs.get(m[1]) } });
+    const p2 = route('GET', /^\/git\/ref\/heads\/(.+)$/);
+    if (p2 !== undefined) {
+      return json({ object: { sha: refs.get(p2) } });
     }
-    if (method === 'GET' && (m = path.match(/^\/git\/commits\/(.+)$/))) {
-      return json({ tree: { sha: `t-${m[1]}` } });
+    const p3 = route('GET', /^\/git\/commits\/(.+)$/);
+    if (p3 !== undefined) {
+      return json({ tree: { sha: `t-${p3}` } });
     }
     if (method === 'POST' && path === '/git/trees') {
       const tree = `t${++id}`;
@@ -85,10 +90,11 @@ function fakeGitHub() {
       trees.set(`t-${commit}`, trees.get(body.tree)!);
       return json({ sha: commit }, 201);
     }
-    if (method === 'PATCH' && (m = path.match(/^\/git\/refs\/heads\/(.+)$/))) {
-      if (!refs.has(m[1]))
+    const p4 = route('PATCH', /^\/git\/refs\/heads\/(.+)$/);
+    if (p4 !== undefined) {
+      if (!refs.has(p4))
         return json({ message: 'Reference does not exist' }, 422);
-      setRef(m[1], body.sha);
+      setRef(p4, body.sha);
       return json({});
     }
     if (method === 'POST' && path === '/git/refs') {
@@ -109,8 +115,9 @@ function fakeGitHub() {
         201,
       );
     }
-    if (method === 'PATCH' && (m = path.match(/^\/pulls\/(\d+)$/))) {
-      Object.assign(pulls[Number(m[1]) - 1], body);
+    const p5 = route('PATCH', /^\/pulls\/(\d+)$/);
+    if (p5 !== undefined) {
+      Object.assign(pulls[Number(p5) - 1], body);
       return json({});
     }
     throw new Error(`unexpected ${method} ${pathname}`);

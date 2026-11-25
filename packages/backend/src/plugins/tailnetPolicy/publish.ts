@@ -107,8 +107,40 @@ export async function publishPolicy(
 
   const onBranch = await getFile(target.branch);
   if (onBranch?.text !== input.policyText) {
+    // One commit on top of the base branch, built first and then pointed
+    // to in a single ref update. Resetting the branch to the base and then
+    // committing would, for a moment, leave the pull request with no
+    // commits, and GitHub closes it for good when that happens.
     const head = await gh<{ object: { sha: string } }>(
       `/repos/${target.repo}/git/ref/heads/${encodeURIComponent(base)}`,
+    );
+    const baseCommit = await gh<{ tree: { sha: string } }>(
+      `/repos/${target.repo}/git/commits/${head.object.sha}`,
+    );
+    const tree = await gh<{ sha: string }>(`/repos/${target.repo}/git/trees`, {
+      method: 'POST',
+      body: JSON.stringify({
+        base_tree: baseCommit.tree.sha,
+        tree: [
+          {
+            path: target.path,
+            mode: '100644',
+            type: 'blob',
+            content: input.policyText,
+          },
+        ],
+      }),
+    });
+    const commit = await gh<{ sha: string }>(
+      `/repos/${target.repo}/git/commits`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          message: `${input.title}\n\nRendered by Backstage's tailnet-policy plugin from the software catalog.`,
+          tree: tree.sha,
+          parents: [head.object.sha],
+        }),
+      },
     );
     try {
       await gh(
@@ -117,7 +149,7 @@ export async function publishPolicy(
         )}`,
         {
           method: 'PATCH',
-          body: JSON.stringify({ sha: head.object.sha, force: true }),
+          body: JSON.stringify({ sha: commit.sha, force: true }),
         },
       );
     } catch (error) {
@@ -126,19 +158,10 @@ export async function publishPolicy(
         method: 'POST',
         body: JSON.stringify({
           ref: `refs/heads/${target.branch}`,
-          sha: head.object.sha,
+          sha: commit.sha,
         }),
       });
     }
-    await gh(`/repos/${target.repo}/contents/${target.path}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        message: `${input.title}\n\nRendered by Backstage's tailnet-policy plugin from the software catalog.`,
-        content: Buffer.from(input.policyText).toString('base64'),
-        branch: target.branch,
-        ...(onBase ? { sha: onBase.sha } : {}),
-      }),
-    });
   }
 
   const body =

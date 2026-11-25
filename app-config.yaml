@@ -173,7 +173,7 @@ catalog:
     entityFilename: catalog-info.yaml
     pullRequestBranchName: backstage-integration
   rules:
-    - allow: [Component, System, API, Resource, Location]
+    - allow: [Component, System, API, Resource, Location, Domain]
     # No TailscaleGrant here: the cluster config registers the one file it
     # may come from as a location of its own, with a rule for just that
     # location. Rules match an entity's origin location, so nothing GitHub

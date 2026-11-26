@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PreviewIcon from '@material-ui/icons/Visibility';
-import type { GrantRule, PolicyView, SshRule } from '../api';
+import type { GrantRule, PolicyView, Principal, SshRule } from '../api';
 import {
   Capabilities,
   Chip,
@@ -68,6 +68,64 @@ function identities(policy: PolicyView, name: string, mode: Mode) {
   return out;
 }
 
+function GrantTable(props: {
+  title: string;
+  summary: string;
+  grants: GrantRule[];
+  mode: Mode;
+  via: (r: GrantRule) => Principal[];
+  policy: string;
+  empty: string;
+}) {
+  const { mode } = props;
+  return (
+    <div className="ts-card">
+      <div className="ts-card-head">
+        <div>
+          <h3>{props.title}</h3>
+          <p>{props.summary}</p>
+        </div>
+      </div>
+      {props.grants.length ? (
+        <table className="ts-table">
+          <thead>
+            <tr>
+              <th>{mode === 'from' ? 'Destination' : 'Source'}</th>
+              <th>Ports</th>
+              <th>Because of</th>
+              <th aria-label="Line" />
+            </tr>
+          </thead>
+          <tbody>
+            {props.grants.map(g => (
+              <tr key={g.id}>
+                <td>
+                  <Chips list={mode === 'from' ? g.dst : g.src} titled />
+                  <Capabilities app={g.app} />
+                </td>
+                <td>
+                  <Ports ip={g.ip} />
+                </td>
+                <td>
+                  <div className="ts-small">{g.title ?? 'Grant'}</div>
+                  <div className="ts-small ts-muted ts-row" style={{ gap: 4 }}>
+                    as <Chips list={props.via(g)} />
+                  </div>
+                </td>
+                <td>
+                  <LineLink lines={g.lines} policy={props.policy} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <Empty icon={<PreviewIcon />}>{props.empty}</Empty>
+      )}
+    </div>
+  );
+}
+
 /**
  * Preview access: pick a user, group or tag and see what the policy lets it
  * reach; or pick a destination and see who reaches it.
@@ -91,6 +149,10 @@ export function Preview(props: { policy: PolicyView }) {
   const side = (r: { src: { name: string }[]; dst: { name: string }[] }) =>
     (mode === 'from' ? r.src : r.dst).some(p => ids.has(p.name));
   const grants = props.policy.grants.filter(side);
+  // Capability grants say what an app lets them do, not what they reach:
+  // kept apart from network access.
+  const network = grants.filter(g => !g.app);
+  const capabilities = grants.filter(g => g.app);
   const ssh = props.policy.ssh.filter(side);
   const via = (r: GrantRule | SshRule) =>
     (mode === 'from' ? r.src : r.dst).filter(p => ids.has(p.name));
@@ -129,55 +191,28 @@ export function Preview(props: { policy: PolicyView }) {
         ) : null}
       </div>
 
-      <div className="ts-card">
-        <div className="ts-card-head">
-          <div>
-            <h3>{mode === 'from' ? 'Can reach' : 'Reached by'}</h3>
-            <p>
-              {grants.length} of {props.policy.grants.length} grants apply
-            </p>
-          </div>
-        </div>
-        {grants.length ? (
-          <table className="ts-table">
-            <thead>
-              <tr>
-                <th>{mode === 'from' ? 'Destination' : 'Source'}</th>
-                <th>Ports</th>
-                <th>Because of</th>
-                <th aria-label="Line" />
-              </tr>
-            </thead>
-            <tbody>
-              {grants.map(g => (
-                <tr key={g.id}>
-                  <td>
-                    <Chips list={mode === 'from' ? g.dst : g.src} titled />
-                    <Capabilities app={g.app} />
-                  </td>
-                  <td>
-                    <Ports ip={g.ip} />
-                  </td>
-                  <td>
-                    <div className="ts-small">{g.title ?? 'Grant'}</div>
-                    <div
-                      className="ts-small ts-muted ts-row"
-                      style={{ gap: 4 }}
-                    >
-                      as <Chips list={via(g)} />
-                    </div>
-                  </td>
-                  <td>
-                    <LineLink lines={g.lines} policy={props.policy.name} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <Empty icon={<PreviewIcon />}>No grant applies.</Empty>
-        )}
-      </div>
+      <GrantTable
+        title={mode === 'from' ? 'Can reach' : 'Reached by'}
+        summary={`${network.length} of ${
+          props.policy.grants.filter(g => !g.app).length
+        } network grants apply`}
+        grants={network}
+        mode={mode}
+        via={via}
+        policy={props.policy.name}
+        empty="No grant applies."
+      />
+      {capabilities.length ? (
+        <GrantTable
+          title="Capabilities"
+          summary="Grants that carry application capabilities: what an app (tsidp, TKA, the web UI) lets them do, on the ports named."
+          grants={capabilities}
+          mode={mode}
+          via={via}
+          policy={props.policy.name}
+          empty=""
+        />
+      ) : null}
 
       <div className="ts-card">
         <div className="ts-card-head">

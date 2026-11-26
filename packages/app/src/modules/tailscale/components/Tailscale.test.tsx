@@ -229,6 +229,21 @@ const overview: Overview = {
         missingSource: [],
         invalid: [],
       },
+      destinations: [
+        {
+          name: 'svc:web',
+          class: 'service',
+          grants: [declared.id],
+          serves: [],
+        },
+        {
+          name: 'tag:server',
+          class: 'device',
+          entityRef: 'tailscale:default/tag-server',
+          grants: [fromCatalog.id],
+          serves: ['svc:web'],
+        },
+      ],
       diagnostics: [
         {
           severity: 'error',
@@ -407,7 +422,7 @@ describe('PolicyConsole', () => {
       <PolicyConsole overview={overview} />,
       '/tailscale?section=preview&who=ada@github',
     );
-    expect(screen.getByText('1 of 2 grants apply')).toBeInTheDocument();
+    expect(screen.getByText('1 of 2 network grants apply')).toBeInTheDocument();
     expect(screen.getByText('Admins use the web UI')).toBeInTheDocument();
     expect(screen.getByText('1 rules apply')).toBeInTheDocument();
   });
@@ -428,6 +443,74 @@ describe('PolicyConsole', () => {
     ]);
     fireEvent.click(screen.getByRole('button', { name: /Clear selection/ }));
     expect(document.querySelectorAll('.ts-code-line-on')).toHaveLength(0);
+  });
+});
+
+describe('capabilities and destination classes', () => {
+  const idp: GrantRule = {
+    id: 'tailscale:default/grant-idp',
+    entityRef: 'tailscale:default/grant-idp',
+    title: 'Admins administer the IdP',
+    origin: 'entity',
+    src: [admins],
+    dst: [server],
+    ip: ['tcp:443'],
+    app: { 'tailscale.com/cap/tsidp': [{ allow_admin_ui: true }] },
+  };
+  const withCaps: Overview = {
+    ...overview,
+    policies: [
+      {
+        ...overview.policies[0],
+        grants: [declared, fromCatalog, idp],
+        destinations: [
+          {
+            name: 'svc:web',
+            class: 'service',
+            grants: [declared.id],
+            serves: [],
+          },
+          {
+            name: 'tag:server',
+            class: 'capability',
+            grants: [fromCatalog.id, idp.id],
+            serves: [],
+          },
+        ],
+      },
+    ],
+  };
+
+  it('draws capability grants as a layer of their own, destinations by class', async () => {
+    await render(<PolicyConsole overview={withCaps} />);
+    const map = screen.getByRole('img', { name: /Access map/ });
+    expect(map.querySelectorAll('[data-layer="capability"]')).toHaveLength(1);
+    expect(map.querySelectorAll('[data-layer="network"]')).toHaveLength(2);
+    expect(within(map).getByText('tsidp')).toBeInTheDocument();
+    expect(within(map).getByText('Services')).toBeInTheDocument();
+    expect(within(map).getByText('Capability targets')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/Capabilities \(app grants\)/));
+    expect(map.querySelectorAll('[data-layer="capability"]')).toHaveLength(0);
+  });
+
+  it('keeps capability grants out of what someone can reach', async () => {
+    await render(
+      <PolicyConsole overview={withCaps} />,
+      '/tailscale?section=preview&who=ada@github',
+    );
+    expect(screen.getByText('1 of 2 network grants apply')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Capabilities' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Admins administer the IdP')).toBeInTheDocument();
+  });
+
+  it("says how a tag is reached, and when its entity doesn't say why", async () => {
+    await render(
+      <PolicyConsole overview={overview} />,
+      '/tailscale?section=tags',
+    );
+    expect(screen.getByText(/its entity doesn't say why/)).toBeInTheDocument();
   });
 });
 

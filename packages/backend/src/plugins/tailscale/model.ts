@@ -61,6 +61,12 @@ export const RELATION_APPLIED_BY = 'tailscaleAppliedBy';
 export const ANNOTATION_TAILNET_GROUP = 'specht-labs.de/tailnet-group';
 /** On a User: their Tailscale login (cedi@github). */
 export const ANNOTATION_TAILNET_LOGIN = 'specht-labs.de/tailnet-login';
+/**
+ * On a Tailscale tag entity: why traffic is addressed to devices carrying
+ * the tag rather than to a Tailscale Service, when that isn't evident (a
+ * peer mesh or a capability target is).
+ */
+export const ANNOTATION_DEVICE_REASON = 'specht-labs.de/tailnet-device-reason';
 
 type Common = {
   type: TailscaleType;

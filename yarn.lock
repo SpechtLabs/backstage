@@ -17133,6 +17133,7 @@ __metadata:
     luxon: "npm:^3.7.2"
     node-gyp: "npm:^10.0.0"
     pg: "npm:^8.11.3"
+    yaml: "npm:^2.9.1"
   languageName: unknown
   linkType: soft
 
@@ -36582,7 +36583,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yaml@npm:^2.0.0, yaml@npm:^2.2.1, yaml@npm:^2.8.0":
+"yaml@npm:^2.0.0, yaml@npm:^2.2.1, yaml@npm:^2.8.0, yaml@npm:^2.9.1":
   version: 2.9.1
   resolution: "yaml@npm:2.9.1"
   bin:

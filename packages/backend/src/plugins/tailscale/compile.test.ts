@@ -121,7 +121,7 @@ function catalog(extra: Entity[] = []) {
       type: 'grant',
       src: ['user:ada'],
       dst: ['tag:server'],
-      ip: ['*'],
+      ip: ['tcp:443'],
       app: { 'tailscale.com/cap/tsidp': [{ users: ['group:admins'] }] },
     }),
     ts('ssh-admins', {
@@ -236,7 +236,7 @@ describe('compileAll', () => {
       {
         src: ['ada@github'],
         dst: ['tag:server'],
-        ip: ['*'],
+        ip: ['tcp:443'],
         app: { 'tailscale.com/cap/tsidp': [{ users: ['group:admins'] }] },
       },
       { src: ['tag:agent'], dst: ['tag:server'], ip: ['tcp:8080'] },
@@ -438,6 +438,104 @@ describe('compileAll', () => {
         message:
           'its target tailscale:other is not a Tailscale policy in the catalog',
       },
+    ]);
+  });
+});
+
+describe('destinations', () => {
+  const tag = (name: string, annotations: Record<string, string> = {}) => ({
+    ...ts(`tag-${name}`, {
+      type: 'tag',
+      tag: `tag:${name}`,
+      owners: ['group:admins'],
+    }),
+    metadata: { name: `tag-${name}`, namespace: 'default', annotations },
+  });
+  const grant = (name: string, spec: Record<string, unknown>) =>
+    ts(name, { type: 'grant', ...spec });
+
+  const compiled = compileAll(
+    catalog([
+      tag('ceph'),
+      tag('ceph-client'),
+      tag('idp'),
+      tag('nas'),
+      tag('box', {
+        'specht-labs.de/tailnet-device-reason': 'NFS v3 needs the device',
+      }),
+      grant('grant-ceph-peers', {
+        src: ['tag:ceph'],
+        dst: ['tag:ceph'],
+        ip: ['tcp:6789'],
+      }),
+      grant('grant-ceph-clients', {
+        src: ['tag:ceph-client'],
+        dst: ['tag:ceph'],
+        ip: ['tcp:6789'],
+      }),
+      grant('grant-idp-admin', {
+        src: ['group:admins'],
+        dst: ['tag:idp'],
+        ip: ['*'],
+        app: { 'tailscale.com/cap/tsidp': [{ allow_admin_ui: true }] },
+      }),
+      grant('grant-nas', {
+        src: ['tag:agent'],
+        dst: ['tag:nas'],
+        ip: ['tcp:2049'],
+      }),
+      grant('grant-box', {
+        src: ['tag:agent'],
+        dst: ['tag:box'],
+        ip: ['tcp:111'],
+      }),
+      grant('grant-web-all', {
+        src: ['group:admins'],
+        dst: ['svc:web'],
+        ip: ['*'],
+      }),
+      grant('grant-self', {
+        src: ['autogroup:member'],
+        dst: ['autogroup:self'],
+        ip: ['5252'],
+      }),
+      ts('approve-nas', {
+        type: 'autoApprovers',
+        services: { 'svc:files': ['tag:nas'] },
+      }),
+    ]),
+  ).policies[0];
+  const classOf = (name: string) =>
+    compiled.destinations.find(d => d.name === name);
+
+  it('says what each destination is', () => {
+    expect(
+      compiled.destinations.map(
+        d => `${d.name} ${d.class}${d.reason ? ` (${d.reason})` : ''}`,
+      ),
+    ).toEqual([
+      'svc:web service',
+      'tag:ceph mesh',
+      'tag:idp capability',
+      'tag:server capability',
+      'autogroup:self autogroup',
+      'tag:box device (NFS v3 needs the device)',
+      'tag:nas device',
+    ]);
+    expect(classOf('tag:nas')).toMatchObject({
+      serves: ['svc:files'],
+      grants: ['tailscale:default/grant-nas'],
+    });
+  });
+
+  it('warns about a device without a reason, and about "*" where ports belong', () => {
+    const warnings = compiled.diagnostics
+      .filter(d => d.severity === 'warning')
+      .map(d => `${d.entityRef}: ${d.message}`);
+    expect(warnings).toEqual([
+      'tailscale:default/grant-idp-admin: carries tailscale.com/cap/tsidp on every port: name the port the app listens on',
+      "tailscale:default/grant-web-all: reaches every port of svc:web: name the ports. On some hosts a Service's address passes every port through to the device, not just those it serves",
+      'tailscale:default/tag-nas: tag:nas is reached as a device, not a Service (tailscale:default/grant-nas), though it serves svc:files: move the traffic to a Service, or say why on its tag entity (specht-labs.de/tailnet-device-reason)',
     ]);
   });
 });

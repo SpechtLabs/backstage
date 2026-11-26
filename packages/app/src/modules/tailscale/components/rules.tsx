@@ -8,6 +8,8 @@ import CatalogIcon from '@material-ui/icons/AccountTree';
 import ChevronIcon from '@material-ui/icons/ChevronRight';
 import type {
   ApproverRule,
+  DestinationClass,
+  DestinationView,
   GrantRule,
   GroupView,
   NodeAttrRule,
@@ -433,7 +435,41 @@ export function TestGroup(props: { tests: TestRule[]; policy?: string }) {
   );
 }
 
-export function TagRow(props: { tag: TagRule; policy?: string }) {
+const REACHED_AS: Record<DestinationClass, string> = {
+  service: 'a Service',
+  mesh: 'a peer mesh: every member at its own address',
+  capability:
+    'a capability target: an app reads capabilities matched on its address',
+  autogroup: 'an autogroup',
+  any: 'everything',
+  device: 'a device',
+};
+
+/** How grants reach a tag, and for a device, why (or that nothing says). */
+function ReachedAs(props: { destination: DestinationView }) {
+  const d = props.destination;
+  const unexplained = d.class === 'device' && !d.reason;
+  return (
+    <div
+      className={`ts-small${unexplained ? ' ts-warning' : ''}`}
+      style={{ marginTop: 4 }}
+    >
+      <span className="ts-muted">Reached as </span>
+      {REACHED_AS[d.class]}
+      {d.reason ? `: ${d.reason}` : ''}
+      {unexplained
+        ? ", and its entity doesn't say why (specht-labs.de/tailnet-device-reason)"
+        : ''}
+    </div>
+  );
+}
+
+export function TagRow(props: {
+  tag: TagRule;
+  policy?: string;
+  /** How grants reach it, if any do. */
+  destination?: DestinationView;
+}) {
   const t = props.tag;
   return (
     <tr data-testid="tag">
@@ -451,6 +487,9 @@ export function TagRow(props: { tag: TagRule; policy?: string }) {
         <div className="ts-rule-title">{t.title ?? t.tag}</div>
         {t.description ? (
           <div className="ts-rule-description">{t.description}</div>
+        ) : null}
+        {props.destination ? (
+          <ReachedAs destination={props.destination} />
         ) : null}
         {t.appliesTo.length ? (
           <div className="ts-small" style={{ marginTop: 4 }}>

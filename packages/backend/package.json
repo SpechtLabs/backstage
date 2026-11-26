@@ -13,7 +13,8 @@
     "lint": "backstage-cli package lint",
     "test": "backstage-cli package test",
     "clean": "backstage-cli package clean",
-    "build-image": "docker build ../.. -f Dockerfile --tag backstage"
+    "build-image": "docker build ../.. -f Dockerfile --tag backstage",
+    "tailscale:diff": "node --require @backstage/cli/config/nodeTransform.cjs src/plugins/tailscale/cli.ts"
   },
   "dependencies": {
     "@backstage-community/plugin-explore-backend": "^0.16.0",
@@ -66,7 +67,8 @@
     "jsonc-parser": "^2.2.1",
     "luxon": "^3.7.2",
     "node-gyp": "^10.0.0",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@backstage/cli": "^0.36.8",

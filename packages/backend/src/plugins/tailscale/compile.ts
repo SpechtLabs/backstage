@@ -8,6 +8,7 @@ import type { JsonObject, JsonValue } from '@backstage/types';
 import { buildTailnetGraph, type Finding, type LocalEdge } from './graph';
 import { HujsonWriter } from './hujson';
 import {
+  ANNOTATION_DEVICE_REASON,
   ANNOTATION_TAILNET_GROUP,
   ANNOTATION_TAILNET_LOGIN,
   asList,
@@ -154,6 +155,34 @@ export interface TestRule extends Rule {
   check: string[];
 }
 
+/**
+ * What a grant destination is. A Service is what a destination should be;
+ * the rest are devices, for a reason: a peer mesh (a tag that reaches
+ * itself: every member is reached at its own address), a capability target
+ * (an app reading capabilities matched on its own address), autogroups,
+ * everything (a break-glass grant), or a reason declared on the tag entity.
+ */
+export type DestinationClass =
+  | 'service'
+  | 'mesh'
+  | 'capability'
+  | 'autogroup'
+  | 'any'
+  | 'device';
+
+export interface DestinationView {
+  name: string;
+  class: DestinationClass;
+  /** Declared on the tag entity (specht-labs.de/tailnet-device-reason). */
+  reason?: string;
+  /** The tag's entity, for tags. */
+  entityRef?: string;
+  /** The grants that reach it. */
+  grants: string[];
+  /** The Services a tag may serve (auto approvers). */
+  serves: string[];
+}
+
 export interface Diagnostic {
   severity: 'error' | 'warning';
   message: string;
@@ -211,6 +240,7 @@ export interface PolicyView {
     missingSource: Finding[];
     invalid: Finding[];
   };
+  destinations: DestinationView[];
   diagnostics: Diagnostic[];
 }
 
@@ -623,6 +653,7 @@ class PolicyCompiler {
 
     const catalog = this.catalogGrants(catalogEntities, grants);
     grants.push(...catalog.grants);
+    this.checkPorts(grants);
 
     // A tag no rule names is fine: devices carry it, operators mint it.
     for (const tag of tags) tag.usage = this.tagUsage.get(tag.tag) ?? 0;
@@ -697,6 +728,7 @@ class PolicyCompiler {
       tests,
       settings: Object.keys(settings).filter(k => !reserved.has(k)),
       catalog: catalog.info,
+      destinations: this.destinations(grants, autoApprovers),
       diagnostics: this.diagnostics,
     };
     render(view, settings, baseUrl, this.parts.length + 1);
@@ -714,6 +746,115 @@ class PolicyCompiler {
       })
       .sort((a, b) => a.name.localeCompare(b.name));
     return view;
+  }
+
+  /**
+   * Ports that say less than they could: a grant with capabilities on every
+   * port, and a grant to a Service on every port.
+   */
+  private checkPorts(grants: GrantRule[]) {
+    for (const g of grants.filter(x => x.ip.includes('*'))) {
+      const where = g.entityRef ?? g.edges?.[0]?.api;
+      if (g.app) {
+        this.warn(
+          `carries ${Object.keys(g.app).join(
+            ', ',
+          )} on every port: name the port the app listens on`,
+          where,
+        );
+      }
+      const services = g.dst.filter(d => d.kind === 'service').map(d => d.name);
+      if (services.length) {
+        this.warn(
+          `reaches every port of ${services.join(
+            ', ',
+          )}: name the ports. On some hosts a Service's address passes every port through to the device, not just those it serves`,
+          where,
+        );
+      }
+    }
+  }
+
+  /** Every grant destination, and what it is; a device without a reason is a problem. */
+  private destinations(
+    grants: GrantRule[],
+    approvers: ApproverRule[],
+  ): DestinationView[] {
+    const views = new Map<string, DestinationView>();
+    for (const g of grants) {
+      for (const d of g.dst) {
+        const view = views.get(d.name) ?? {
+          name: d.name,
+          class: 'device' as DestinationClass,
+          entityRef: d.kind === 'tag' ? d.entityRef : undefined,
+          grants: [],
+          serves: [],
+        };
+        view.grants.push(g.id);
+        views.set(d.name, view);
+      }
+    }
+    const reachedBy = (name: string) =>
+      grants.filter(g => g.dst.some(d => d.name === name));
+    for (const view of views.values()) {
+      const tag = view.name.startsWith('tag:')
+        ? this.tagEntities.get(view.name)
+        : undefined;
+      view.reason =
+        tag?.metadata.annotations?.[ANNOTATION_DEVICE_REASON]?.trim() ||
+        undefined;
+      view.serves = approvers
+        .filter(
+          a =>
+            a.kind === 'service' && a.approvers.some(p => p.name === view.name),
+        )
+        .map(a => a.target);
+      const grantsTo = reachedBy(view.name);
+      if (view.name === '*') view.class = 'any';
+      else if (view.name.startsWith('svc:')) view.class = 'service';
+      else if (view.name.startsWith('autogroup:')) view.class = 'autogroup';
+      else if (
+        grants.some(
+          g =>
+            g.src.some(s => s.name === view.name) &&
+            g.dst.some(d => d.name === view.name),
+        )
+      ) {
+        view.class = 'mesh';
+      } else if (grantsTo.some(g => g.app)) view.class = 'capability';
+      else view.class = 'device';
+
+      if (
+        view.class === 'device' &&
+        view.entityRef && // an undeclared tag is an error already
+        !view.reason
+      ) {
+        const by = grantsTo.map(g => g.entityRef ?? g.title ?? g.id);
+        this.warn(
+          `${view.name} is reached as a device, not a Service (${by.join(
+            ', ',
+          )})${
+            view.serves.length
+              ? `, though it serves ${view.serves.join(', ')}`
+              : ''
+          }: move the traffic to a Service, or say why on its tag entity (${ANNOTATION_DEVICE_REASON})`,
+          view.entityRef,
+        );
+      }
+    }
+    const order: DestinationClass[] = [
+      'service',
+      'mesh',
+      'capability',
+      'autogroup',
+      'device',
+      'any',
+    ];
+    return [...views.values()].sort(
+      (a, b) =>
+        order.indexOf(a.class) - order.indexOf(b.class) ||
+        a.name.localeCompare(b.name),
+    );
   }
 
   /**

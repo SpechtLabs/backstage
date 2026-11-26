@@ -434,14 +434,16 @@ function OverviewSection(props: {
           <div>
             <h3>Access map</h3>
             <p>
-              Every grant: sources on the left, what they reach on the right.
-              Hover a selector to trace it, click it to see its grants.
+              Every grant: sources on the left, what they reach on the right, by
+              what it is. Dashed lines are capability grants. Hover a selector
+              to trace it, click it to see its grants.
             </p>
           </div>
         </div>
         <div className="ts-card-body">
           <AccessMap
             grants={policy.grants}
+            destinations={policy.destinations}
             onSelect={name => go('grants', { q: name })}
           />
         </div>
@@ -841,7 +843,14 @@ export function PolicyConsole(props: {
                 </thead>
                 <tbody>
                   {tags.map(t => (
-                    <TagRow key={t.id} tag={t} policy={name} />
+                    <TagRow
+                      key={t.id}
+                      tag={t}
+                      policy={name}
+                      destination={policy.destinations.find(
+                        d => d.name === t.tag,
+                      )}
+                    />
                   ))}
                 </tbody>
               </table>

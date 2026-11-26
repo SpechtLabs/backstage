@@ -52,6 +52,27 @@ Users and groups, and the Tech Radar, live in the private
 Backstage reads them from GitHub, so changing them needs no release. Sign-in
 matches the tsidp token's `email` claim to a User's `spec.profile.email`.
 
+## Tailscale
+
+The tailscale plugin renders tailnet policies from the catalog's
+`kind: Tailscale` entities and the services' `specht-labs.de/tailnet-*`
+annotations (`packages/backend/src/plugins/tailscale`). To check a change
+before pushing it, render from local checkouts and compare with the policy
+file that gets applied:
+
+```sh
+yarn tailscale:diff ~/src/gh/cedi/homelab/tailscale/policy.hujson \
+  ~/src/gh/cedi/homelab ~/src/gh/SpechtLabs/k8s-deployment \
+  ~/src/gh/SpechtLabs/backstage_resources
+```
+
+It reads every catalog YAML in the given checkouts (tracked and untracked
+files), rebuilds the relations the catalog would add, prints the policy's
+destinations by class and its problems, and lists what each section allows
+that the other doesn't. A grant to a Service on `*` counts as the ports the
+Service's APIs list. Exit status 1 means a difference or an error. `--out`
+writes the rendered file, `--json` what `/api/tailscale/overview` serves.
+
 ## Upgrading Backstage by hand
 
 ```sh

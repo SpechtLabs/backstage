@@ -125,6 +125,24 @@ export interface TestRule extends Rule {
   check: string[];
 }
 
+/** What a grant destination is: see the backend's compile.ts. */
+export type DestinationClass =
+  | 'service'
+  | 'mesh'
+  | 'capability'
+  | 'autogroup'
+  | 'any'
+  | 'device';
+
+export interface DestinationView {
+  name: string;
+  class: DestinationClass;
+  reason?: string;
+  entityRef?: string;
+  grants: string[];
+  serves: string[];
+}
+
 export interface Diagnostic {
   severity: 'error' | 'warning';
   message: string;
@@ -193,6 +211,7 @@ export interface PolicyView {
     missingSource: Finding[];
     invalid: Finding[];
   };
+  destinations: DestinationView[];
   diagnostics: Diagnostic[];
 }
 

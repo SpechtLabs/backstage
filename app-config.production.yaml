@@ -42,10 +42,12 @@ catalog:
   # Entities whose source stops emitting them are deleted, not kept: git is
   # the source of truth.
   orphanStrategy: delete
-  # Replaces the example locations from app-config.yaml.
+  # Replaces the example locations from app-config.yaml. Users and groups
+  # live in the private SpechtLabs/backstage_resources, so changing them
+  # needs no release.
   locations:
-    - type: file
-      target: ./catalog/org.yaml
+    - type: url
+      target: https://github.com/SpechtLabs/backstage_resources/blob/main/catalog/org.yaml
       rules:
         - allow: [User, Group]
 

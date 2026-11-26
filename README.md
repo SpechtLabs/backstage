@@ -47,8 +47,10 @@ then rolls out through k8s-deployment. Majors wait on the Dependency Dashboard.
 
 ## Catalog
 
-`catalog/org.yaml` holds users and groups. Sign-in matches the tsidp token's
-`email` claim to a User's `spec.profile.email`.
+Users and groups, and the Tech Radar, live in the private
+[SpechtLabs/backstage_resources](https://github.com/SpechtLabs/backstage_resources):
+Backstage reads them from GitHub, so changing them needs no release. Sign-in
+matches the tsidp token's `email` claim to a User's `spec.profile.email`.
 
 ## Upgrading Backstage by hand
 

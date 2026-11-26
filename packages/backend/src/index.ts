@@ -76,7 +76,8 @@ backend.add(
 );
 backend.add(techInsightsModuleSpechtLabs);
 
-// Tech Radar: tech-radar.json in this repo, read from GitHub (techRadar.url).
+// Tech Radar: tech-radar.json in SpechtLabs/backstage_resources, read from
+// GitHub (techRadar.url).
 backend.add(import('@backstage-community/plugin-tech-radar-backend'));
 
 // Explore: the tools in explore.tools, next to the catalog's domains/systems.

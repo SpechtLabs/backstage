@@ -38,6 +38,9 @@ app:
     # the browser and fails whenever that API is down.
     - home-page-widget:home/random-joke: false
     - home-page-widget:home/world-clock: false
+    # The unprocessed entities page ships disabled, but its sidebar link
+    # doesn't: enable it (DevTools has the same view as a tab).
+    - page:catalog-unprocessed-entities: true
     - page:home:
         config:
           path: /
@@ -238,6 +241,19 @@ mcpActions:
 # needs no release. Required: the tech-radar backend doesn't start without it.
 techRadar:
   url: https://github.com/SpechtLabs/backstage_resources/blob/main/tech-radar.json
+
+# DevTools' Scheduled Tasks tab: the plugins whose tasks it lists, with
+# their next run and a Trigger button (catalog: GitHub discovery and orphan
+# cleanup; search: the indexers; tailscale: publishing the policy file).
+devTools:
+  scheduledTasks:
+    plugins:
+      - catalog
+      - search
+      - tailscale
+      - tech-insights
+      - scaffolder
+      - notifications
 
 # Tailscale (packages/backend/src/plugins/tailscale): each tailnet policy
 # put together from kind: Tailscale entities, the catalog's Users and Groups,

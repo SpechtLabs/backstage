@@ -136,7 +136,7 @@ export async function publishPolicy(
       {
         method: 'POST',
         body: JSON.stringify({
-          message: `${input.title}\n\nRendered by Backstage's tailnet-policy plugin from the software catalog.`,
+          message: `${input.title}\n\nRendered by Backstage from the Tailscale entities in its catalog.`,
           tree: tree.sha,
           parents: [head.object.sha],
         }),

@@ -174,10 +174,10 @@ catalog:
     pullRequestBranchName: backstage-integration
   rules:
     - allow: [Component, System, API, Resource, Location, Domain]
-    # No TailscaleGrant here: the cluster config registers the one file it
-    # may come from as a location of its own, with a rule for just that
-    # location. Rules match an entity's origin location, so nothing GitHub
-    # discovery or another Location reads can grant anyone anything.
+    # No Tailscale here: the cluster config registers the one directory the
+    # policy may come from as a location of its own, with a rule for just
+    # that location. Rules match an entity's origin location, so nothing
+    # GitHub discovery or another Location reads can grant anyone anything.
   locations:
     # Local example data, file locations are relative to the backend process, typically `packages/backend`
     - type: file
@@ -236,22 +236,15 @@ mcpActions:
 # Tech Radar: SpechtLabs' stack, in tech-radar.json in this repo. Read from
 # GitHub at runtime, so editing it needs no release. Required: the
 # tech-radar backend doesn't start without it.
-# Tailnet policy from the catalog (packages/backend/src/plugins/tailnetPolicy):
-# Tailscale grants rendered from Components consuming APIs annotated with
-# specht-labs.de/tailnet-dst, compared with the hand-written policy. Shadow
-# mode: production sets tailnetPolicy.publish to keep a pull request open in
-# a sandbox repo; nothing is applied to the tailnet.
-tailnetPolicy:
-  basePolicyUrl: https://github.com/cedi/homelab/blob/main/tailscale/policy.hujson
-  # Owners for tags the hand-written policy doesn't have yet: these, plus the
-  # Tailscale operator of the cluster the tag shows up on.
-  defaultTagOwners: [group:admins]
-  clusterTagOwners:
-    specht-labs: tag:k8s-operator
-    labk3s: tag:k3s-operator
-
 techRadar:
   url: https://github.com/SpechtLabs/backstage/blob/main/tech-radar.json
+
+# Tailscale (packages/backend/src/plugins/tailscale): each tailnet policy
+# put together from kind: Tailscale entities, the catalog's Users and Groups,
+# and the APIs Components consume across the tailnet. Production lists the
+# policies to keep a pull request open with, under publish.
+tailscale:
+  publish: []
 
 # Explore: the tools next to the catalog's domains and systems.
 explore:

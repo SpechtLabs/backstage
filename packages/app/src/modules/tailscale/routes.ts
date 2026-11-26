@@ -1,4 +1,4 @@
 import { createRouteRef } from '@backstage/frontend-plugin-api';
 
-/** The tailnet policy page. */
+/** The Tailscale page: /tailscale. */
 export const rootRouteRef = createRouteRef();

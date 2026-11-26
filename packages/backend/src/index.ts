@@ -7,7 +7,7 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
-import { catalogModuleTailscaleGrant } from './plugins/tailnetPolicy/kind';
+import { catalogModuleTailscale } from './plugins/tailscale/processor';
 import { authModuleTsidpProvider } from './modules/tsidpAuth';
 import { techInsightsModuleSpechtLabs } from './modules/techInsights';
 
@@ -113,9 +113,9 @@ backend.add(import('@backstage/plugin-signals-backend'));
 // mcp actions plugin
 backend.add(import('@backstage/plugin-mcp-actions-backend'));
 
-// tailnet policy from the catalog's dependency graph (shadow mode)
-backend.add(import('./plugins/tailnetPolicy'));
-// the TailscaleGrant kind (catalog.rules decides where it may come from)
-backend.add(catalogModuleTailscaleGrant);
+// Tailscale policies from the catalog (plugins/tailscale)
+backend.add(import('./plugins/tailscale'));
+// kind: Tailscale (catalog.rules decides where it may come from)
+backend.add(catalogModuleTailscale);
 
 backend.start();

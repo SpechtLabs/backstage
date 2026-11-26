@@ -129,7 +129,7 @@ describe('publishPolicy', () => {
   const target: PublishTarget = {
     repo: 'o/r',
     path: 'tailscale/generated.hujson',
-    branch: 'backstage/tailnet-policy',
+    branch: 'backstage/tailscale',
   };
   const credentials = {
     getCredentials: async () => ({

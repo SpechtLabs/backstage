@@ -57,9 +57,15 @@ ENV PYTHON=/usr/bin/python3
 
 # TechDocs builds docs in-process (techdocs.generator.runIn: local): mkdocs
 # with the TechDocs plugins, in a virtualenv (Debian's Python refuses
-# system-wide pip installs).
+# system-wide pip installs). Extra plugins a docs site may list in its
+# mkdocs.yml: roadmap (mkdocs-roadmap, SierraSoftworks/roadmap: roadmap.yml
+# files rendered to pages, static HTML). Mermaid diagrams need no plugin
+# here: ```mermaid blocks are drawn in the browser by the app's TechDocs addon
+# (backstage-plugin-techdocs-addon-mermaid), since TechDocs strips scripts.
 RUN python3 -m venv /opt/techdocs && \
-    /opt/techdocs/bin/pip install --no-cache-dir mkdocs-techdocs-core==1.7.1
+    /opt/techdocs/bin/pip install --no-cache-dir \
+      mkdocs-techdocs-core==1.7.1 \
+      mkdocs-roadmap==1.4.2
 ENV PATH="/opt/techdocs/bin:${PATH}"
 
 # From here on, the least-privileged `node` user (uid 1000).

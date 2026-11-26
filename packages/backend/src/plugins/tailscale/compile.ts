@@ -17,6 +17,7 @@ import {
   type GrantSpec,
   type NodeAttrSpec,
   type PolicySpec,
+  type PublishSpec,
   type SshSpec,
   type TagSpec,
   type TailscaleEntity,
@@ -64,9 +65,11 @@ interface Rule {
 }
 
 export interface CatalogEdge {
+  /** The consuming Component; for tailnet-allow, the API. */
   consumer: string;
   api: string;
   providers: string[];
+  via: 'consumesApi' | 'tailnet-allow';
   src: string[];
   dst: string[];
   ports: string[];
@@ -183,6 +186,8 @@ export interface PolicyView {
   description?: string;
   tailnet?: string;
   owner?: string;
+  /** Where its file is published: the policy's spec.publish. */
+  publish?: PublishSpec;
   renderedAt: string;
   /** The policy file. */
   text: string;
@@ -677,6 +682,7 @@ class PolicyCompiler {
       description: this.policy.metadata.description,
       tailnet: this.policy.spec.tailnet,
       owner: this.policy.spec.owner,
+      publish: this.policy.spec.publish,
       renderedAt: new Date().toISOString(),
       text: '',
       spans: [],
@@ -711,9 +717,12 @@ class PolicyCompiler {
   }
 
   /**
-   * One grant per destination and ports, from the Components that consume
-   * an API across the tailnet. Consumptions an entity grant already allows
-   * get none.
+   * Grants from the catalog: a Component consuming an API across the
+   * tailnet, and whoever an API's tailnet-allow names. Flows to the same
+   * destination and ports share a grant; grants with the same sources and
+   * destinations are then merged. A flow an entity grant already allows by
+   * name gets none; one only a "*" destination allows still gets its own,
+   * so the policy doesn't hang on a break-glass grant.
    */
   private catalogGrants(entities: Entity[], declared: GrantRule[]) {
     const info: PolicyView['catalog'] = {
@@ -740,7 +749,7 @@ class PolicyCompiler {
                 s.name === '*' ||
                 (s.name === 'autogroup:tagged' && src.startsWith('tag:')),
             ) &&
-            g.dst.some(d => d.name === dst || d.name === '*') &&
+            g.dst.some(d => d.name === dst) &&
             g.ip.some(p => {
               const range = parsePort(p);
               return range && portCovers(range, port);
@@ -748,7 +757,8 @@ class PolicyCompiler {
         )
         .map(g => g.id);
 
-    const byKey = new Map<
+    // Same destination and ports: one grant, every source.
+    const byPorts = new Map<
       string,
       { dst: string[]; ip: string[]; edges: CatalogEdge[] }
     >();
@@ -757,6 +767,7 @@ class PolicyCompiler {
         consumer: edge.consumer,
         api: edge.api,
         providers: edge.providers,
+        via: edge.via,
         src: edge.src,
         dst: edge.dst,
         ports: edge.ports.map(formatPort),
@@ -771,31 +782,72 @@ class PolicyCompiler {
       const dst = [...edge.dst].sort();
       const ip = view.ports.slice().sort();
       const key = `${dst.join(',')}|${ip.join(',')}`;
-      const entry = byKey.get(key) ?? { dst, ip, edges: [] };
+      const entry = byPorts.get(key) ?? { dst, ip, edges: [] };
       entry.edges.push(view);
-      byKey.set(key, entry);
+      byPorts.set(key, entry);
     }
 
-    const grants = [...byKey.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, entry]): GrantRule => {
-        const src = [...new Set(entry.edges.flatMap(e => e.src))].sort();
+    // Same sources and destination: one grant, every port.
+    const merged = new Map<
+      string,
+      { src: string[]; dst: string[]; ip: string[]; edges: CatalogEdge[] }
+    >();
+    for (const entry of byPorts.values()) {
+      const src = [...new Set(entry.edges.flatMap(e => e.src))].sort();
+      const key = `${src.join(',')}>${entry.dst.join(',')}`;
+      const into = merged.get(key) ?? {
+        src,
+        dst: entry.dst,
+        ip: [],
+        edges: [],
+      };
+      into.ip = [...new Set([...into.ip, ...entry.ip])].sort(byPort);
+      for (const e of entry.edges) {
+        if (!into.edges.includes(e)) into.edges.push(e);
+      }
+      merged.set(key, into);
+    }
+
+    const grants = [...merged.values()]
+      .sort(
+        (a, b) =>
+          a.dst.join(',').localeCompare(b.dst.join(',')) ||
+          a.src.join(',').localeCompare(b.src.join(',')),
+      )
+      .map((entry): GrantRule => {
+        const consumers = entry.edges.filter(e => e.via === 'consumesApi');
+        const allowed = entry.edges.filter(e => e.via === 'tailnet-allow');
+        const said = [
+          consumers.length
+            ? `Consumed by ${unique(consumers.map(e => e.consumer)).join(
+                ', ',
+              )}.`
+            : '',
+          allowed.length
+            ? `Used by ${[...new Set(allowed.flatMap(e => e.src))].join(
+                ', ',
+              )} (tailnet-allow).`
+            : '',
+        ];
         return {
-          id: `catalog:${key}`,
+          id: `catalog:${entry.src.join(',')}>${entry.dst.join(
+            ',',
+          )}|${entry.ip.join(',')}`,
           origin: 'catalog',
           title: `From the catalog: ${unique(entry.edges.map(e => e.api)).join(
             ', ',
           )}`,
-          description: `Consumed by ${unique(
-            entry.edges.map(e => e.consumer),
-          ).join(', ')}.`,
-          src: src.map(s =>
-            this.resolve(
+          description: said.filter(Boolean).join(' '),
+          src: entry.src.map(s => {
+            const edge = entry.edges.find(e => e.src.includes(s))!;
+            return this.resolve(
               s,
-              entry.edges.find(e => e.src.includes(s))!.consumer,
-              'specht-labs.de/tailnet-src',
-            ),
-          ),
+              edge.consumer,
+              edge.via === 'consumesApi'
+                ? 'specht-labs.de/tailnet-src'
+                : 'specht-labs.de/tailnet-allow',
+            );
+          }),
           dst: entry.dst.map(d =>
             this.resolve(d, entry.edges[0].api, 'specht-labs.de/tailnet-dst'),
           ),
@@ -805,6 +857,16 @@ class PolicyCompiler {
       });
     return { grants, info };
   }
+}
+
+/** tcp:443 before tcp:5001 before tcp:6690: by number, not text. */
+function byPort(a: string, b: string) {
+  const pa = parsePort(a);
+  const pb = parsePort(b);
+  return (
+    (pa?.proto ?? '').localeCompare(pb?.proto ?? '') ||
+    (pa?.from ?? 0) - (pb?.from ?? 0)
+  );
 }
 
 // --- rendering ---------------------------------------------------------------

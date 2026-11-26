@@ -2,12 +2,16 @@ import type { LoggerService } from '@backstage/backend-plugin-api';
 import type { GithubCredentialsProvider } from '@backstage/integration';
 
 export interface PublishTarget {
-  /** owner/name of the repo the pull request goes to. */
+  /** owner/name of the repository. */
   repo: string;
-  /** Path of the generated file in that repo. */
+  /** Path of the policy file in it. */
   path: string;
-  /** The branch Backstage owns and force-pushes. */
-  branch: string;
+  /** pullRequest: one pull request kept open; push: commit to the branch. */
+  flow: 'pullRequest' | 'push';
+  /** The branch the file lands on; the repository's default if unset. */
+  branch?: string;
+  /** pullRequest: the branch Backstage owns and force-pushes. */
+  pullRequestBranch: string;
 }
 
 export interface PublishInput {
@@ -18,7 +22,7 @@ export interface PublishInput {
 
 export type PublishResult =
   | { outcome: 'up-to-date' }
-  | { outcome: 'opened' | 'updated'; url: string };
+  | { outcome: 'opened' | 'updated' | 'pushed'; url: string };
 
 const API = 'https://api.github.com';
 // GitHub's limit on a pull request body.
@@ -31,9 +35,11 @@ class GitHubError extends Error {
 }
 
 /**
- * Opens (or refreshes) one pull request that puts the generated policy at
- * target.path. The branch always holds a single commit on top of the base
- * branch, so the pull request shows exactly what the catalog would change.
+ * Puts the rendered policy at target.path. With flow pullRequest, one pull
+ * request is kept open: its branch always holds a single commit on top of
+ * the base branch, so it shows exactly what the catalog would change, and it
+ * is closed once the base branch has the file. With flow push, the file is
+ * committed to the branch directly.
  */
 export async function publishPolicy(
   credentials: GithubCredentialsProvider,
@@ -45,6 +51,7 @@ export async function publishPolicy(
     url: `https://github.com/${target.repo}`,
   });
   if (!token) throw new Error(`No GitHub token for ${target.repo}`);
+  const repoPath = `/repos/${target.repo}`;
 
   const gh = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
     const response = await fetch(`${API}${path}`, {
@@ -69,58 +76,27 @@ export async function publishPolicy(
   const getFile = async (ref: string) => {
     try {
       const file = await gh<{ sha: string; content: string }>(
-        `/repos/${target.repo}/contents/${target.path}?ref=${encodeURIComponent(
-          ref,
-        )}`,
+        `${repoPath}/contents/${target.path}?ref=${encodeURIComponent(ref)}`,
       );
-      return {
-        sha: file.sha,
-        text: Buffer.from(file.content, 'base64').toString('utf8'),
-      };
+      return Buffer.from(file.content, 'base64').toString('utf8');
     } catch (error) {
       if (error instanceof GitHubError && error.status === 404)
         return undefined;
       throw error;
     }
   };
-
-  const repo = await gh<{ default_branch: string }>(`/repos/${target.repo}`);
-  const base = repo.default_branch;
-  const owner = target.repo.split('/')[0];
-  const [open] = await gh<Array<{ number: number; html_url: string }>>(
-    `/repos/${target.repo}/pulls?state=open&head=${owner}:${encodeURIComponent(
-      target.branch,
-    )}`,
-  );
-
-  const onBase = await getFile(base);
-  if (onBase?.text === input.policyText) {
-    if (open) {
-      await gh(`/repos/${target.repo}/pulls/${open.number}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ state: 'closed' }),
-      });
-      logger.info(`Closed ${open.html_url}: ${base} already has the policy`);
-    }
-    return { outcome: 'up-to-date' };
-  }
-
-  const onBranch = await getFile(target.branch);
-  if (onBranch?.text !== input.policyText) {
-    // One commit on top of the base branch, built first and then pointed
-    // to in a single ref update. Resetting the branch to the base and then
-    // committing would, for a moment, leave the pull request with no
-    // commits, and GitHub closes it for good when that happens.
+  /** A commit with the file on top of `branch`'s head. */
+  const commitOnto = async (branch: string) => {
     const head = await gh<{ object: { sha: string } }>(
-      `/repos/${target.repo}/git/ref/heads/${encodeURIComponent(base)}`,
+      `${repoPath}/git/ref/heads/${encodeURIComponent(branch)}`,
     );
-    const baseCommit = await gh<{ tree: { sha: string } }>(
-      `/repos/${target.repo}/git/commits/${head.object.sha}`,
+    const parent = await gh<{ tree: { sha: string } }>(
+      `${repoPath}/git/commits/${head.object.sha}`,
     );
-    const tree = await gh<{ sha: string }>(`/repos/${target.repo}/git/trees`, {
+    const tree = await gh<{ sha: string }>(`${repoPath}/git/trees`, {
       method: 'POST',
       body: JSON.stringify({
-        base_tree: baseCommit.tree.sha,
+        base_tree: parent.tree.sha,
         tree: [
           {
             path: target.path,
@@ -131,21 +107,65 @@ export async function publishPolicy(
         ],
       }),
     });
-    const commit = await gh<{ sha: string }>(
-      `/repos/${target.repo}/git/commits`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          message: `${input.title}\n\nRendered by Backstage from the Tailscale entities in its catalog.`,
-          tree: tree.sha,
-          parents: [head.object.sha],
-        }),
-      },
-    );
+    return gh<{ sha: string }>(`${repoPath}/git/commits`, {
+      method: 'POST',
+      body: JSON.stringify({
+        message: `${input.title}\n\nRendered by Backstage from the Tailscale entities in its catalog.`,
+        tree: tree.sha,
+        parents: [head.object.sha],
+      }),
+    });
+  };
+
+  const repo = await gh<{ default_branch: string }>(repoPath);
+  const base = target.branch ?? repo.default_branch;
+
+  if (target.flow === 'push') {
+    if ((await getFile(base)) === input.policyText) {
+      return { outcome: 'up-to-date' };
+    }
+    const commit = await commitOnto(base);
+    // Not forced: if someone pushed in between, this fails and the next
+    // run tries again on top of their commit.
+    await gh(`${repoPath}/git/refs/heads/${encodeURIComponent(base)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ sha: commit.sha, force: false }),
+    });
+    logger.info(`Pushed ${target.path} to ${target.repo}@${base}`);
+    return {
+      outcome: 'pushed',
+      url: `https://github.com/${target.repo}/commit/${commit.sha}`,
+    };
+  }
+
+  const owner = target.repo.split('/')[0];
+  const [open] = await gh<Array<{ number: number; html_url: string }>>(
+    `${repoPath}/pulls?state=open&head=${owner}:${encodeURIComponent(
+      target.pullRequestBranch,
+    )}`,
+  );
+
+  if ((await getFile(base)) === input.policyText) {
+    if (open) {
+      await gh(`${repoPath}/pulls/${open.number}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ state: 'closed' }),
+      });
+      logger.info(`Closed ${open.html_url}: ${base} already has the policy`);
+    }
+    return { outcome: 'up-to-date' };
+  }
+
+  if ((await getFile(target.pullRequestBranch)) !== input.policyText) {
+    // One commit on top of the base branch, built first and then pointed
+    // to in a single ref update. Resetting the branch to the base and then
+    // committing would, for a moment, leave the pull request with no
+    // commits, and GitHub closes it for good when that happens.
+    const commit = await commitOnto(base);
     try {
       await gh(
-        `/repos/${target.repo}/git/refs/heads/${encodeURIComponent(
-          target.branch,
+        `${repoPath}/git/refs/heads/${encodeURIComponent(
+          target.pullRequestBranch,
         )}`,
         {
           method: 'PATCH',
@@ -154,10 +174,10 @@ export async function publishPolicy(
       );
     } catch (error) {
       if (!(error instanceof GitHubError) || error.status !== 422) throw error;
-      await gh(`/repos/${target.repo}/git/refs`, {
+      await gh(`${repoPath}/git/refs`, {
         method: 'POST',
         body: JSON.stringify({
-          ref: `refs/heads/${target.branch}`,
+          ref: `refs/heads/${target.pullRequestBranch}`,
           sha: commit.sha,
         }),
       });
@@ -169,23 +189,20 @@ export async function publishPolicy(
       ? `${input.body.slice(0, MAX_BODY)}\n\n…(truncated)`
       : input.body;
   if (open) {
-    await gh(`/repos/${target.repo}/pulls/${open.number}`, {
+    await gh(`${repoPath}/pulls/${open.number}`, {
       method: 'PATCH',
       body: JSON.stringify({ title: input.title, body }),
     });
     return { outcome: 'updated', url: open.html_url };
   }
-  const created = await gh<{ html_url: string }>(
-    `/repos/${target.repo}/pulls`,
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        title: input.title,
-        head: target.branch,
-        base,
-        body,
-      }),
-    },
-  );
+  const created = await gh<{ html_url: string }>(`${repoPath}/pulls`, {
+    method: 'POST',
+    body: JSON.stringify({
+      title: input.title,
+      head: target.pullRequestBranch,
+      base,
+      body,
+    }),
+  });
   return { outcome: 'opened', url: created.html_url };
 }

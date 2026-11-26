@@ -241,10 +241,10 @@ techRadar:
 
 # Tailscale (packages/backend/src/plugins/tailscale): each tailnet policy
 # put together from kind: Tailscale entities, the catalog's Users and Groups,
-# and the APIs Components consume across the tailnet. Production lists the
-# policies to keep a pull request open with, under publish.
+# and the services' tailnet annotations. A policy entity's spec.publish says
+# where its file goes; Backstage writes only to the repositories listed here.
 tailscale:
-  publish: []
+  allowedRepos: []
 
 # Explore: the tools next to the catalog's domains and systems.
 explore:

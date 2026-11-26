@@ -20,7 +20,8 @@ import { parsePort } from './ports';
  *     ip: [tcp:3493]
  *
  * spec.type     what it is, and which section of the policy it renders to:
- *   policy        the policy: hosts, settings, the catalog's grants
+ *   policy        the policy: hosts, settings, the catalog's grants, and
+ *                 where its file is published (spec.publish)
  *   grant         one entry of "grants"
  *   ssh           one entry of "ssh"
  *   tag           one tag of "tagOwners"
@@ -65,7 +66,7 @@ type Common = {
   type: TailscaleType;
   /** The policy this belongs to: a Tailscale entity of type policy. */
   target?: string;
-  owner?: string;
+  owner: string;
   system?: string;
   /** Catalog entities this is about: they list it on their pages. */
   appliesTo?: string[];
@@ -83,6 +84,23 @@ export type PolicySpec = Common & {
   catalogGrants?: boolean;
   /** Other top-level policy keys, rendered as they are. */
   settings?: JsonObject;
+  /** Where the rendered file goes, and how. */
+  publish?: PublishSpec;
+};
+
+/**
+ * spec.publish: the repository and path the policy file is written to.
+ * flow pullRequest keeps one pull request open from pullRequestBranch into
+ * branch; push commits to branch directly. branch defaults to the
+ * repository's default branch. The repository must be one Backstage's
+ * tailscale.allowedRepos lists.
+ */
+export type PublishSpec = {
+  repo: string;
+  path: string;
+  flow?: 'pullRequest' | 'push';
+  branch?: string;
+  pullRequestBranch?: string;
 };
 
 export type GrantSpec = Common & {
@@ -188,6 +206,7 @@ export function asList<T>(value: T | T[] | undefined): T[] {
 // checked when a policy is put together, where the whole catalog is known.
 
 const TAG = /^tag:[A-Za-z0-9][A-Za-z0-9-]*$/;
+const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const CAPABILITY = /^[a-z0-9.-]+\/cap\/[a-z0-9-]+$/;
 
 const isStringList = (value: unknown): value is string[] =>
@@ -287,6 +306,27 @@ const VALIDATORS: { [T in TailscaleType]: (c: Checker) => void } = {
       }
     }
     c.object('settings');
+    const publish = c.object('publish');
+    if (publish) {
+      const text = (key: string) =>
+        publish[key] === undefined || typeof publish[key] === 'string';
+      if (typeof publish.repo !== 'string' || !REPO.test(publish.repo)) {
+        c.errors.push('spec.publish.repo must be owner/name');
+      }
+      if (typeof publish.path !== 'string' || !publish.path) {
+        c.errors.push('spec.publish.path is required');
+      }
+      if (!['pullRequest', 'push', undefined].includes(publish.flow as any)) {
+        c.errors.push(
+          `spec.publish.flow must be pullRequest or push, not ${String(
+            publish.flow,
+          )}`,
+        );
+      }
+      if (!text('branch') || !text('pullRequestBranch')) {
+        c.errors.push('spec.publish branches must be strings');
+      }
+    }
   },
   grant: c => {
     c.list('src', { required: true });
@@ -392,7 +432,7 @@ export function validateTailscaleSpec(spec: unknown): string[] {
   }
   const checker = new Checker(spec);
   if (type !== 'policy') checker.string('target', true);
-  checker.string('owner');
+  checker.string('owner', true);
   checker.string('system');
   checker.list('appliesTo');
   VALIDATORS[type](checker);

@@ -87,7 +87,17 @@ const fromCatalog: GrantRule = {
       consumer: 'component:default/agent',
       api: 'api:default/server-api',
       providers: ['component:default/server'],
+      via: 'consumesApi',
       src: ['tag:agent'],
+      dst: ['tag:server'],
+      ports: ['tcp:8080'],
+    },
+    {
+      consumer: 'api:default/server-api',
+      api: 'api:default/server-api',
+      providers: ['component:default/server'],
+      via: 'tailnet-allow',
+      src: ['group:admins'],
       dst: ['tag:server'],
       ports: ['tcp:8080'],
     },
@@ -101,7 +111,8 @@ const overview: Overview = {
     'tailscale:default/tailnet': {
       repo: 'o/r',
       path: 'policy.hujson',
-      branch: 'backstage/tailscale',
+      flow: 'pullRequest',
+      pullRequestBranch: 'backstage/tailscale',
       last: {
         at: new Date().toISOString(),
         outcome: 'opened',
@@ -287,7 +298,45 @@ describe('PolicyConsole', () => {
     expect(screen.getByRole('img', { name: /Access map/ })).toBeInTheDocument();
     expect(screen.getByText('tag:nope is not declared')).toBeInTheDocument();
     expect(
-      screen.getByText('1 grant from 1 API consumption'),
+      screen.getByText('1 grant from 1 API consumption and 1 tailnet-allow'),
+    ).toBeInTheDocument();
+  });
+
+  it('says where the file is pushed, or why it is not published', async () => {
+    const pushed: Overview = {
+      ...overview,
+      publish: {
+        'tailscale:default/tailnet': {
+          ...overview.publish['tailscale:default/tailnet'],
+          flow: 'push',
+          last: {
+            at: new Date().toISOString(),
+            outcome: 'pushed',
+            url: 'https://github.com/o/r/commit/abc',
+          },
+        },
+      },
+    };
+    const { unmount } = await render(<PolicyConsole overview={pushed} />);
+    expect(screen.getByRole('link', { name: 'Pushes to o/r' })).toHaveAttribute(
+      'href',
+      'https://github.com/o/r/commit/abc',
+    );
+    unmount();
+    const refused: Overview = {
+      ...overview,
+      publish: {
+        'tailscale:default/tailnet': {
+          ...overview.publish['tailscale:default/tailnet'],
+          problem: "o/r is not in Backstage's tailscale.allowedRepos",
+        },
+      },
+    };
+    await render(<PolicyConsole overview={refused} />);
+    expect(
+      screen.getByText(
+        /Not published: o\/r is not in Backstage's tailscale.allowedRepos/,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -313,6 +362,8 @@ describe('PolicyConsole', () => {
       '/tailscale?section=file&policy=tailnet&lines=9-14',
     );
 
+    expect(within(grants[1]).getByText('allows')).toBeInTheDocument();
+    expect(within(grants[1]).getByText('consumes')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Filter'), {
       target: { value: 'tcp:8080' },
     });

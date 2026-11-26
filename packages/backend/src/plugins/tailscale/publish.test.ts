@@ -128,8 +128,9 @@ function fakeGitHub() {
 describe('publishPolicy', () => {
   const target: PublishTarget = {
     repo: 'o/r',
-    path: 'tailscale/generated.hujson',
-    branch: 'backstage/tailscale',
+    path: 'tailscale/policy.hujson',
+    flow: 'pullRequest',
+    pullRequestBranch: 'backstage/tailscale',
   };
   const credentials = {
     getCredentials: async () => ({
@@ -145,10 +146,10 @@ describe('publishPolicy', () => {
     debug: jest.fn(),
     child: jest.fn(),
   } as unknown as LoggerService;
-  const publish = (text: string) =>
+  const publish = (text: string, to: PublishTarget = target) =>
     publishPolicy(
       credentials,
-      target,
+      to,
       { policyText: text, title: 'title', body: `body ${text}` },
       logger,
     );
@@ -177,8 +178,21 @@ describe('publishPolicy', () => {
     expect(github.pulls.map(p => [p.number, p.state, p.body])).toEqual([
       [1, 'open', 'body v2'],
     ]);
-    const head = github.refs.get(target.branch)!;
+    const head = github.refs.get(target.pullRequestBranch)!;
     expect(github.files.get(head)![target.path]).toBe('v2');
+  });
+
+  it('pushes straight to the branch with flow push', async () => {
+    const push: PublishTarget = { ...target, flow: 'push' };
+    const pushed = await publish('v1', push);
+    expect(pushed).toMatchObject({ outcome: 'pushed' });
+    const main = github.refs.get('main')!;
+    expect(github.files.get(main)![target.path]).toBe('v1');
+    expect(github.pulls).toEqual([]);
+    await expect(publish('v1', push)).resolves.toEqual({
+      outcome: 'up-to-date',
+    });
+    expect(github.refs.get('main')).toBe(main);
   });
 
   it('closes the pull request once the base branch has the policy', async () => {

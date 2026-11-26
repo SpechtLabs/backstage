@@ -39,9 +39,11 @@ export interface Rule {
 }
 
 export interface CatalogEdge {
+  /** The consuming Component; for tailnet-allow, the API. */
   consumer: string;
   api: string;
   providers: string[];
+  via: 'consumesApi' | 'tailnet-allow';
   src: string[];
   dst: string[];
   ports: string[];
@@ -165,6 +167,7 @@ export interface PolicyView {
   description?: string;
   tailnet?: string;
   owner?: string;
+  publish?: PublishSpec;
   renderedAt: string;
   text: string;
   spans: Span[];
@@ -193,10 +196,22 @@ export interface PolicyView {
   diagnostics: Diagnostic[];
 }
 
+export interface PublishSpec {
+  repo: string;
+  path: string;
+  flow?: 'pullRequest' | 'push';
+  branch?: string;
+  pullRequestBranch?: string;
+}
+
 export interface PublishStatus {
   repo: string;
   path: string;
-  branch: string;
+  flow: 'pullRequest' | 'push';
+  branch?: string;
+  pullRequestBranch: string;
+  /** Why it isn't published, if it isn't. */
+  problem?: string;
   last?: { at: string; outcome: string; url?: string; error?: string };
 }
 

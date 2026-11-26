@@ -20,10 +20,9 @@ import { publishPolicy, type PublishTarget } from './publish';
 import { pullRequestBody, pullRequestTitle } from './report';
 
 /** Where a policy is published, and how the last run went. */
-export interface PublishStatus {
-  repo: string;
-  path: string;
-  branch: string;
+export interface PublishStatus extends PublishTarget {
+  /** Why it isn't published, if it isn't. */
+  problem?: string;
   last?: { at: string; outcome: string; url?: string; error?: string };
 }
 
@@ -48,14 +47,16 @@ export const CATALOG_FIELDS = [
 
 /**
  * Tailscale policies from the catalog: kind Tailscale entities, the
- * catalog's Users and Groups, and (with catalogGrants) the APIs Components
- * consume across the tailnet. See model.ts for the entities.
+ * catalog's Users and Groups, and (with catalogGrants) the tailnet
+ * annotations of APIs and Components (graph.ts). See model.ts for the
+ * entities.
  *
  *   GET /api/tailscale/overview                         every policy
  *   GET /api/tailscale/policies/:namespace/:name/file   one policy file
  *   GET /api/tailscale/access?entity=<ref>              one entity's view
  *
- * tailscale.publish keeps a pull request open with a policy's file.
+ * A policy with spec.publish is written to its repository every hour, as a
+ * pull request or a push, if tailscale.allowedRepos lists the repository.
  */
 export const tailscalePlugin = createBackendPlugin({
   pluginId: 'tailscale',
@@ -111,33 +112,42 @@ export const tailscalePlugin = createBackendPlugin({
           return cached.snapshot;
         };
 
-        const targets = new Map<string, PublishTarget>();
-        for (const entry of settings?.getOptionalConfigArray('publish') ?? []) {
-          const policy = stringifyEntityRef(
-            parseEntityRef(entry.getString('policy'), {
-              defaultKind: TAILSCALE_KIND,
-              defaultNamespace: 'default',
-            }),
-          );
-          targets.set(policy, {
-            repo: entry.getString('repo'),
-            path: entry.getOptionalString('path') ?? 'policy.hujson',
-            branch: entry.getOptionalString('branch') ?? 'backstage/tailscale',
-          });
-        }
+        // The catalog says where each policy goes (spec.publish); this says
+        // which repositories Backstage may write to at all.
+        const allowedRepos = new Set(
+          (settings?.getOptionalStringArray('allowedRepos') ?? []).map(r =>
+            r.toLowerCase(),
+          ),
+        );
         const lastPublish = new Map<string, PublishStatus['last']>();
+        const publishing = (compiled: Compiled) =>
+          new Map(
+            compiled.policies
+              .filter(p => p.publish)
+              .map((p): [string, PublishStatus] => {
+                const spec = p.publish!;
+                const status: PublishStatus = {
+                  repo: spec.repo,
+                  path: spec.path,
+                  flow: spec.flow ?? 'pullRequest',
+                  branch: spec.branch,
+                  pullRequestBranch:
+                    spec.pullRequestBranch ?? `backstage/tailscale-${p.name}`,
+                  last: lastPublish.get(p.entityRef),
+                };
+                if (!allowedRepos.has(spec.repo.toLowerCase())) {
+                  status.problem = `${spec.repo} is not in Backstage's tailscale.allowedRepos`;
+                }
+                return [p.entityRef, status];
+              }),
+          );
 
         const router = Router();
         router.get('/overview', async (_req, res) => {
           const { compiled } = await current();
           const body: Overview = {
             ...compiled,
-            publish: Object.fromEntries(
-              [...targets].map(([ref, target]) => [
-                ref,
-                { ...target, last: lastPublish.get(ref) },
-              ]),
-            ),
+            publish: Object.fromEntries(publishing(compiled)),
           };
           res.json(body);
         });
@@ -182,7 +192,6 @@ export const tailscalePlugin = createBackendPlugin({
         });
         httpRouter.use(router);
 
-        if (!targets.size) return;
         const github = DefaultGithubCredentialsProvider.fromIntegrations(
           ScmIntegrations.fromConfig(config),
         );
@@ -195,10 +204,12 @@ export const tailscalePlugin = createBackendPlugin({
           initialDelay: { minutes: 3 },
           fn: async () => {
             const { compiled } = await current(0);
-            for (const [ref, target] of targets) {
-              const policy = compiled.policies.find(p => p.entityRef === ref);
-              if (!policy) {
-                logger.warn(`tailscale: no policy ${ref} in the catalog`);
+            for (const [ref, target] of publishing(compiled)) {
+              const policy = compiled.policies.find(p => p.entityRef === ref)!;
+              if (target.problem) {
+                logger.warn(
+                  `tailscale: not publishing ${ref}: ${target.problem}`,
+                );
                 continue;
               }
               try {

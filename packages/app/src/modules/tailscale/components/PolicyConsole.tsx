@@ -29,8 +29,10 @@ import CatalogIcon from '@material-ui/icons/AccountTree';
 import PullRequestIcon from '@material-ui/icons/CallSplit';
 import OwnerIcon from '@material-ui/icons/Group';
 import ClockIcon from '@material-ui/icons/Schedule';
+import PushIcon from '@material-ui/icons/Publish';
 import type {
   Diagnostic,
+  PublishStatus,
   Overview,
   PolicyView,
   TailscaleType,
@@ -167,6 +169,44 @@ function download(policy: PolicyView) {
   URL.revokeObjectURL(url);
 }
 
+/** Where the file goes, and what the last run did. */
+function PublishMeta(props: { publish: PublishStatus }) {
+  const p = props.publish;
+  const where = `${p.repo}: ${p.path}${p.branch ? ` on ${p.branch}` : ''}`;
+  const verb = p.flow === 'push' ? 'Pushes to' : 'Pull request in';
+  if (p.problem) {
+    return (
+      <span title={where} className="ts-warning">
+        <WarningIcon fontSize="inherit" />
+        Not published: {p.problem}
+      </span>
+    );
+  }
+  return (
+    <span
+      title={`${where}${
+        p.last ? ` · last run ${since(p.last.at)}: ${p.last.outcome}` : ''
+      }${p.last?.error ? ` (${p.last.error})` : ''}`}
+    >
+      {p.flow === 'push' ? (
+        <PushIcon fontSize="inherit" />
+      ) : (
+        <PullRequestIcon fontSize="inherit" />
+      )}
+      {p.last?.url ? (
+        <a href={p.last.url} target="_blank" rel="noreferrer">
+          {verb} {p.repo}
+        </a>
+      ) : (
+        <>
+          {verb} {p.repo}
+          {p.last ? ` · ${p.last.outcome}` : ''}
+        </>
+      )}
+    </span>
+  );
+}
+
 function Hero(props: {
   overview: Overview;
   policy: PolicyView;
@@ -215,23 +255,7 @@ function Hero(props: {
               <ClockIcon fontSize="inherit" />
               Rendered {since(policy.renderedAt)}
             </span>
-            {publish ? (
-              <span
-                title={`${publish.repo}: ${publish.path} on ${publish.branch}`}
-              >
-                <PullRequestIcon fontSize="inherit" />
-                {publish.last?.url ? (
-                  <a href={publish.last.url} target="_blank" rel="noreferrer">
-                    Pull request in {publish.repo}
-                  </a>
-                ) : (
-                  <>
-                    Published to {publish.repo}
-                    {publish.last ? ` · ${publish.last.outcome}` : ''}
-                  </>
-                )}
-              </span>
-            ) : null}
+            {publish ? <PublishMeta publish={publish} /> : null}
           </div>
         </div>
       </div>
@@ -361,6 +385,8 @@ function OverviewSection(props: {
 }) {
   const { policy, go } = props;
   const fromCatalog = policy.grants.filter(g => g.origin === 'catalog').length;
+  const catalogEdges = (via: 'consumesApi' | 'tailnet-allow') =>
+    policy.grants.flatMap(g => g.edges ?? []).filter(e => e.via === via).length;
   const stats: Array<[Section, number, string, ReactNode]> = [
     [
       'grants',
@@ -443,9 +469,11 @@ function OverviewSection(props: {
             <div>
               <h3>From the catalog</h3>
               <p>
-                Components that consume an API across the tailnet get a grant to
-                it: the API's specht-labs.de/tailnet-dst and -ports, the
-                Component's tailnet-src.
+                Grants made from the services' own annotations: an API's
+                specht-labs.de/tailnet-dst and -ports say where it is reached;
+                every Component that consumes it across the tailnet reaches it
+                as its tailnet-src (or the API's tailnet-client-tag), and
+                whoever its tailnet-allow names may use it too.
               </p>
             </div>
           </div>
@@ -459,12 +487,8 @@ function OverviewSection(props: {
                   onClick={() => go('grants', { origin: 'catalog' })}
                 >
                   {plural(fromCatalog, 'grant')} from{' '}
-                  {plural(
-                    policy.grants
-                      .filter(g => g.origin === 'catalog')
-                      .reduce((n, g) => n + (g.edges?.length ?? 0), 0),
-                    'API consumption',
-                  )}
+                  {plural(catalogEdges('consumesApi'), 'API consumption')} and{' '}
+                  {plural(catalogEdges('tailnet-allow'), 'tailnet-allow')}
                 </button>
               </dd>
               <dt>Already allowed</dt>

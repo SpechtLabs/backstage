@@ -69,9 +69,7 @@ export class TailscaleEntityProcessor implements CatalogProcessor {
     };
 
     const { spec } = entity;
-    if (spec.owner) {
-      pair(ref(spec.owner, 'Group'), RELATION_OWNED_BY, RELATION_OWNER_OF);
-    }
+    pair(ref(spec.owner, 'Group'), RELATION_OWNED_BY, RELATION_OWNER_OF);
     if (spec.system) {
       pair(ref(spec.system, 'System'), RELATION_PART_OF, RELATION_HAS_PART);
     }

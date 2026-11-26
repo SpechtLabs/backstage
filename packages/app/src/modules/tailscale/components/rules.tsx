@@ -171,13 +171,23 @@ function Consumptions(props: { edges: NonNullable<GrantRule['edges']> }) {
     <details className="ts-details">
       <summary>
         <ChevronIcon fontSize="inherit" />
-        {plural(props.edges.length, 'API consumption')} in the catalog
+        Where in the catalog:{' '}
+        {plural(props.edges.length, 'annotation', 'annotations')}
       </summary>
-      <ul className="ts-small" style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+      <ul className="ts-small ts-list">
         {props.edges.map(e => (
-          <li key={`${e.consumer} ${e.api}`}>
-            <EntityLink entityRef={e.consumer} /> consumes{' '}
-            <EntityLink entityRef={e.api} />
+          <li key={`${e.via} ${e.consumer} ${e.api}`}>
+            {e.via === 'tailnet-allow' ? (
+              <>
+                <EntityLink entityRef={e.api} />{' '}
+                <span className="ts-muted">allows</span> <Chips list={e.src} />
+              </>
+            ) : (
+              <>
+                <EntityLink entityRef={e.consumer} /> consumes{' '}
+                <EntityLink entityRef={e.api} />
+              </>
+            )}
             {e.providers.length ? (
               <>
                 {' '}

@@ -11,7 +11,7 @@ const ts = (name: string, spec: Record<string, unknown>, title?: string) =>
     apiVersion: 'specht-labs.de/v1alpha1',
     kind: 'Tailscale',
     metadata: { name, namespace: 'default', title },
-    spec: { target: 'tailscale:tailnet', ...spec },
+    spec: { target: 'tailscale:tailnet', owner: 'group:ops', ...spec },
     relations: [],
   } as Entity);
 
@@ -252,13 +252,13 @@ describe('compileAll', () => {
     ]);
   });
 
-  it('gives no catalog grant to what a grant entity already allows', () => {
+  it('gives no catalog grant to what a grant entity names', () => {
     const covered = compileAll(
       catalog([
         ts('grant-agents', {
           type: 'grant',
           src: ['tag:agent'],
-          dst: ['*'],
+          dst: ['tag:server'],
           ip: ['tcp:8000-9000'],
         }),
       ]),
@@ -269,6 +269,113 @@ describe('compileAll', () => {
         consumer: 'component:default/agent',
         coveredBy: ['tailscale:default/grant-agents'],
       },
+    ]);
+  });
+
+  it('keeps catalog grants that only a "*" destination covers', () => {
+    const broad = compileAll(
+      catalog([
+        ts('grant-agents', {
+          type: 'grant',
+          src: ['tag:agent'],
+          dst: ['*'],
+          ip: ['*'],
+        }),
+      ]),
+    ).policies[0];
+    expect(
+      broad.grants.filter(g => g.origin === 'catalog').map(g => g.id),
+    ).toEqual(['catalog:tag:agent>tag:server|tcp:8080']);
+  });
+
+  it('grants what an API allows, as its client tag, merged by source', () => {
+    const allowed = compileAll(
+      catalog([
+        api(
+          'web-ui',
+          {
+            'specht-labs.de/tailnet-dst': 'svc:web',
+            'specht-labs.de/tailnet-ports': 'tcp:443',
+            'specht-labs.de/tailnet-allow': 'group:admins, autogroup:member',
+          },
+          'component:default/server',
+        ),
+        api(
+          'web-sync',
+          {
+            'specht-labs.de/tailnet-dst': 'svc:web',
+            'specht-labs.de/tailnet-ports': 'tcp:6690',
+            'specht-labs.de/tailnet-allow': 'group:admins, autogroup:member',
+          },
+          'component:default/server',
+        ),
+        api(
+          'idp',
+          {
+            'specht-labs.de/tailnet-dst': 'tag:server',
+            'specht-labs.de/tailnet-ports': 'tcp:443',
+            'specht-labs.de/tailnet-client-tag': 'tag:agent',
+          },
+          'component:default/server',
+        ),
+        // No tailnet-src: it reaches idp as the API's client tag.
+        component('portal', {}, [['consumesApi', 'api:default/idp']]),
+      ]),
+    ).policies[0];
+    const fromCatalog = allowed.grants.filter(g => g.origin === 'catalog');
+    expect(
+      fromCatalog.map(g => [
+        g.src.map(p => p.name),
+        g.dst.map(p => p.name),
+        g.ip,
+      ]),
+    ).toEqual([
+      // 443 and 6690 to svc:web: one grant, the ports in order.
+      [
+        ['autogroup:member', 'group:admins'],
+        ['svc:web'],
+        ['tcp:443', 'tcp:6690'],
+      ],
+      [['tag:agent'], ['tag:server'], ['tcp:443', 'tcp:8080']],
+    ]);
+    expect(fromCatalog[0].description).toBe(
+      'Used by group:admins, autogroup:member (tailnet-allow).',
+    );
+    expect(
+      fromCatalog[1].edges!.find(e => e.api === 'api:default/idp'),
+    ).toMatchObject({
+      consumer: 'component:default/portal',
+      via: 'consumesApi',
+      src: ['tag:agent'],
+    });
+    expect(allowed.catalog.missingSource).toEqual([]);
+    expect(allowed.diagnostics).toEqual([]);
+  });
+
+  it('says which tailnet annotations it cannot read', () => {
+    const bad = compileAll(
+      catalog([
+        api(
+          'odd',
+          {
+            'specht-labs.de/tailnet-dst': 'svc:web',
+            'specht-labs.de/tailnet-ports': 'tcp:443',
+            'specht-labs.de/tailnet-allow': 'everyone',
+            'specht-labs.de/tailnet-client-tag': 'agent',
+          },
+          'component:default/server',
+        ),
+        api(
+          'half',
+          { 'specht-labs.de/tailnet-allow': 'group:admins' },
+          'component:default/server',
+        ),
+      ]),
+    ).policies[0];
+    expect(bad.catalog.invalid.map(f => `${f.entity}: ${f.message}`)).toEqual([
+      'api:default/odd: specht-labs.de/tailnet-allow: only groups, users, autogroups and tags, not everyone',
+      'api:default/odd: specht-labs.de/tailnet-client-tag: one tag:…, not agent',
+      'api:default/half: the tailnet annotations need specht-labs.de/tailnet-dst',
     ]);
   });
 
@@ -439,6 +546,7 @@ describe('validateTailscaleSpec', () => {
       }),
     ).toEqual([
       'spec.target is required',
+      'spec.owner is required',
       'spec.src must be a list of strings',
       'spec.dst is required',
       'spec.ip: not ports: nope',
@@ -449,6 +557,7 @@ describe('validateTailscaleSpec', () => {
       validateTailscaleSpec({
         type: 'ssh',
         target: 'x',
+        owner: 'group:x',
         action: 'allow',
         src: [],
         dst: ['*'],
@@ -462,6 +571,7 @@ describe('validateTailscaleSpec', () => {
       validateTailscaleSpec({
         type: 'tag',
         target: 'x',
+        owner: 'group:x',
         tag: 'server',
         owners: [],
       }),
@@ -473,6 +583,7 @@ describe('validateTailscaleSpec', () => {
       validateTailscaleSpec({
         type: 'test',
         target: 'x',
+        owner: 'group:x',
         tests: [{ proto: 'tcp' }],
       }),
     ).toEqual([
@@ -483,9 +594,31 @@ describe('validateTailscaleSpec', () => {
       validateTailscaleSpec({
         type: 'autoApprovers',
         target: 'x',
+        owner: 'group:x',
         services: { web: ['tag:a'] },
       }),
     ).toEqual(['spec.services: web is not svc:<name>']);
+  });
+});
+
+describe('spec.publish', () => {
+  const policy = (publish: unknown) =>
+    validateTailscaleSpec({ type: 'policy', owner: 'group:x', publish });
+  it('takes a repository, a path and a flow', () => {
+    expect(policy({ repo: 'o/r', path: 'policy.hujson' })).toEqual([]);
+    expect(
+      policy({
+        repo: 'o/r',
+        path: 'tailscale/policy.hujson',
+        flow: 'push',
+        branch: 'main',
+      }),
+    ).toEqual([]);
+    expect(policy({ repo: 'https://github.com/o/r', flow: 'merge' })).toEqual([
+      'spec.publish.repo must be owner/name',
+      'spec.publish.path is required',
+      'spec.publish.flow must be pullRequest or push, not merge',
+    ]);
   });
 });
 

@@ -605,6 +605,17 @@ button.ts-chip:hover {
   text-decoration: underline;
 }
 
+.ts-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.ts-list li + li {
+  margin-top: 4px;
+}
+.ts-warning {
+  color: var(--ts-check);
+}
+
 /* --- tables ---------------------------------------------------------------- */
 
 .ts-table {

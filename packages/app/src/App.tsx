@@ -6,7 +6,7 @@ import { navModule } from './modules/nav';
 import { openCostPlugin } from './modules/opencost';
 import { themeModule } from './modules/theme';
 import { homeModule } from './modules/home';
-import { tailscalePlugin } from './modules/tailscale';
+import tailscalePlugin from '@spechtlabs/backstage-plugin-tailscale';
 
 export default createApp({
   features: [

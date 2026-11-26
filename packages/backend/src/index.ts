@@ -7,7 +7,6 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
-import { catalogModuleTailscale } from './plugins/tailscale/processor';
 import { authModuleTsidpProvider } from './modules/tsidpAuth';
 import { techInsightsModuleSpechtLabs } from './modules/techInsights';
 
@@ -114,9 +113,11 @@ backend.add(import('@backstage/plugin-signals-backend'));
 // mcp actions plugin
 backend.add(import('@backstage/plugin-mcp-actions-backend'));
 
-// Tailscale policies from the catalog (plugins/tailscale)
-backend.add(import('./plugins/tailscale'));
+// Tailscale policies from the catalog (SpechtLabs/backstage-plugin-tailscale)
+backend.add(import('@spechtlabs/backstage-plugin-tailscale-backend'));
 // kind: Tailscale (catalog.rules decides where it may come from)
-backend.add(catalogModuleTailscale);
+backend.add(
+  import('@spechtlabs/backstage-plugin-catalog-backend-module-tailscale'),
+);
 
 backend.start();

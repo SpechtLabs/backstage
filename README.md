@@ -54,11 +54,16 @@ matches the tsidp token's `email` claim to a User's `spec.profile.email`.
 
 ## Tailscale
 
-The tailscale plugin renders tailnet policies from the catalog's
-`kind: Tailscale` entities and the services' `specht-labs.de/tailnet-*`
-annotations (`packages/backend/src/plugins/tailscale`). To check a change
-before pushing it, render from local checkouts and compare with the policy
-file that gets applied:
+The Tailscale pages and cards come from
+[SpechtLabs/backstage-plugin-tailscale](https://github.com/SpechtLabs/backstage-plugin-tailscale),
+published to npm as `@spechtlabs/backstage-plugin-tailscale` (app),
+`-tailscale-backend` and `-catalog-backend-module-tailscale` (backend).
+Changes to the plugin go there; a new release here is a version bump.
+`.yarnrc.yml` lets `@spechtlabs/*` skip the 3-day minimum age, like
+`@backstage/*`.
+
+To check a policy change before pushing it, render from local checkouts and
+compare with the policy file that gets applied:
 
 ```sh
 yarn tailscale:diff ~/src/gh/cedi/homelab/tailscale/policy.hujson \
@@ -66,12 +71,8 @@ yarn tailscale:diff ~/src/gh/cedi/homelab/tailscale/policy.hujson \
   ~/src/gh/SpechtLabs/backstage_resources
 ```
 
-It reads every catalog YAML in the given checkouts (tracked and untracked
-files), rebuilds the relations the catalog would add, prints the policy's
-destinations by class and its problems, and lists what each section allows
-that the other doesn't. A grant to a Service on `*` counts as the ports the
-Service's APIs list. Exit status 1 means a difference or an error. `--out`
-writes the rendered file, `--json` what `/api/tailscale/overview` serves.
+See the plugin's README for what it prints. Exit status 1 means a difference
+or an error.
 
 ## Upgrading Backstage by hand
 

@@ -12824,50 +12824,50 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@spechtlabs/backstage-plugin-catalog-backend-module-tailscale@npm:^0.1.0":
-  version: 0.1.0
-  resolution: "@spechtlabs/backstage-plugin-catalog-backend-module-tailscale@npm:0.1.0"
+"@spechtlabs/backstage-plugin-catalog-backend-module-tailscale@npm:^0.1.1":
+  version: 0.1.1
+  resolution: "@spechtlabs/backstage-plugin-catalog-backend-module-tailscale@npm:0.1.1"
   dependencies:
     "@backstage/backend-plugin-api": "npm:^1.12.0"
     "@backstage/catalog-model": "npm:^1.10.3"
     "@backstage/plugin-catalog-node": "npm:^3.0.0"
-    "@spechtlabs/backstage-plugin-tailscale-common": "npm:^0.1.0"
-  checksum: 10c0/0948b63edce0b284f04c223ed82b75efcd835e7b680bae992599fefa97a4d8b5402408f5817bc8a095f721c4c84fe2cef56644d024d43c55262416f090a0970b
+    "@spechtlabs/backstage-plugin-tailscale-common": "npm:^0.1.1"
+  checksum: 10c0/47ddd6dcfa65d1d8ae79072ab31d785975f863d3d3bc4498ae242b568facc7c45b75803078a3b54365811099d2980439bc93e4ac09105fa899ff6238fe139c0d
   languageName: node
   linkType: hard
 
-"@spechtlabs/backstage-plugin-tailscale-backend@npm:^0.1.0":
-  version: 0.1.0
-  resolution: "@spechtlabs/backstage-plugin-tailscale-backend@npm:0.1.0"
+"@spechtlabs/backstage-plugin-tailscale-backend@npm:^0.1.1":
+  version: 0.1.1
+  resolution: "@spechtlabs/backstage-plugin-tailscale-backend@npm:0.1.1"
   dependencies:
     "@backstage/backend-plugin-api": "npm:^1.12.0"
     "@backstage/catalog-model": "npm:^1.10.3"
     "@backstage/integration": "npm:^2.2.0"
     "@backstage/plugin-catalog-node": "npm:^3.0.0"
     "@backstage/types": "npm:^1.2.2"
-    "@spechtlabs/backstage-plugin-tailscale-common": "npm:^0.1.0"
+    "@spechtlabs/backstage-plugin-tailscale-common": "npm:^0.1.1"
     express-promise-router: "npm:^4.1.1"
     jsonc-parser: "npm:^2.2.1"
     yaml: "npm:^2.9.1"
   bin:
     backstage-tailscale-diff: bin/backstage-tailscale-diff
-  checksum: 10c0/e23d42fabb08d2e2e11f222511bd089134ff677512c13372bacf147461a639f7991556ac7ce9fc62d88e96f69d0355ee8f5fd8c6afc95b5aaa667e09d494503d
+  checksum: 10c0/bdffdd378605603d336189286ea82b4dfae1b8c71d4423e118f7178a7d9462717c8b38dd0b2525cfd8ef1eec7807996151b53557c2f7509db5abd2b4f8379027
   languageName: node
   linkType: hard
 
-"@spechtlabs/backstage-plugin-tailscale-common@npm:^0.1.0":
-  version: 0.1.0
-  resolution: "@spechtlabs/backstage-plugin-tailscale-common@npm:0.1.0"
+"@spechtlabs/backstage-plugin-tailscale-common@npm:^0.1.1":
+  version: 0.1.1
+  resolution: "@spechtlabs/backstage-plugin-tailscale-common@npm:0.1.1"
   dependencies:
     "@backstage/catalog-model": "npm:^1.10.3"
     "@backstage/types": "npm:^1.2.2"
-  checksum: 10c0/f84545575d5e85829d8b741f30cb34f99ca2544dad7ef7ac2587034961cacf683c8a8856f7e26145451a789f75b5d3d512c9e027e075af2bcebf9748721f3375
+  checksum: 10c0/c97951ac603dd9d5fbcb2050a4485759811fba08aee0b8caf79899d5869892260e00b32d78c66c43b8097bf6575d3d458e9b5886b4c005bbfe9061c12121c72d
   languageName: node
   linkType: hard
 
-"@spechtlabs/backstage-plugin-tailscale@npm:^0.1.0":
-  version: 0.1.0
-  resolution: "@spechtlabs/backstage-plugin-tailscale@npm:0.1.0"
+"@spechtlabs/backstage-plugin-tailscale@npm:^0.1.2":
+  version: 0.1.2
+  resolution: "@spechtlabs/backstage-plugin-tailscale@npm:0.1.2"
   dependencies:
     "@backstage/catalog-model": "npm:^1.10.3"
     "@backstage/core-components": "npm:^0.18.16"
@@ -12875,12 +12875,12 @@ __metadata:
     "@backstage/plugin-catalog-react": "npm:^4.0.0"
     "@material-ui/core": "npm:^4.12.2"
     "@material-ui/icons": "npm:^4.9.1"
-    "@spechtlabs/backstage-plugin-tailscale-common": "npm:^0.1.0"
+    "@spechtlabs/backstage-plugin-tailscale-common": "npm:^0.1.1"
   peerDependencies:
     react: ^16.13.1 || ^17.0.0 || ^18.0.0
     react-dom: ^16.13.1 || ^17.0.0 || ^18.0.0
     react-router-dom: ^6.3.0
-  checksum: 10c0/f5f6c9099d57707c490084bf53257fef60012638c09318b5cce3852ed1d4e32a3d1988cbe8437066c75594fb8a49ac2b48f92c93823217bfeaee53d3bddd4d19
+  checksum: 10c0/421e8c16d6a0ed5b8bd08e9da98f5ca20c7603c4fc3a5359ab11baa85dda9ac0ae9850ca25704b7dea1d3af8b45831a05ae83c3e9c53a69fac719bc8aa878f55
   languageName: node
   linkType: hard
 
@@ -16567,7 +16567,7 @@ __metadata:
     "@roadiehq/backstage-plugin-github-insights": "npm:^3.6.1"
     "@roadiehq/backstage-plugin-github-pull-requests": "npm:^3.9.1"
     "@samuel.fabel/plugin-grpc-docs": "npm:^0.1.0"
-    "@spechtlabs/backstage-plugin-tailscale": "npm:^0.1.0"
+    "@spechtlabs/backstage-plugin-tailscale": "npm:^0.1.2"
     "@testing-library/dom": "npm:^9.0.0"
     "@testing-library/jest-dom": "npm:^6.0.0"
     "@testing-library/react": "npm:^14.0.0"
@@ -17215,8 +17215,8 @@ __metadata:
     "@backstage/plugin-techdocs-backend": "npm:^2.4.3"
     "@backstage/plugin-user-settings-backend": "npm:^0.4.9"
     "@estehsaan/backstage-plugin-techdocs-editor-backend": "npm:^2.1.1"
-    "@spechtlabs/backstage-plugin-catalog-backend-module-tailscale": "npm:^0.1.0"
-    "@spechtlabs/backstage-plugin-tailscale-backend": "npm:^0.1.0"
+    "@spechtlabs/backstage-plugin-catalog-backend-module-tailscale": "npm:^0.1.1"
+    "@spechtlabs/backstage-plugin-tailscale-backend": "npm:^0.1.1"
     "@types/luxon": "npm:^3.7.6"
     app: "link:../app"
     better-sqlite3: "npm:^12.0.0"
